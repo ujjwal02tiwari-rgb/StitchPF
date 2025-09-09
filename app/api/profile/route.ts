@@ -1,5 +1,5 @@
 
-// app/api/profile/route.ts
+
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
@@ -22,30 +22,31 @@ export async function POST(req: Request) {
     const data = ProfileSchema.parse(payload);
     const handle = data.handle.toLowerCase();
 
-    const profile = await prisma.profile.upsert({
-      where: { handle },
-      update: {
-        fullName: data.fullName,
-        title: data.title,
-        bio: data.bio ?? null,
-        location: data.location ?? null,
-        website: data.website ?? null,
-        avatar: data.avatar ?? null,
-        theme: data.theme ?? "ocean",
-        accent: data.accent ?? "#22d3ee",
-      },
-      create: {
-        handle,
-        fullName: data.fullName,
-        title: data.title,
-        bio: data.bio ?? null,
-        location: data.location ?? null,
-        website: data.website ?? null,
-        avatar: data.avatar ?? null,
-        theme: data.theme ?? "ocean",
-        accent: data.accent ?? "#22d3ee",
-      },
-    });
+  const profile = await prisma.profile.upsert({
+  where: { handle },
+  update: {
+    fullName: data.fullName,
+    title: data.title,
+    theme: data.theme ?? 'ocean',
+    accent: data.accent ?? '#22d3ee',
+    ...(data.bio ? { bio: data.bio } : {}),
+    ...(data.location ? { location: data.location } : {}),
+    ...(data.website ? { website: data.website } : {}),
+    ...(data.avatar ? { avatar: data.avatar } : {}),
+  },
+  create: {
+    handle,
+    fullName: data.fullName,
+    title: data.title,
+    theme: data.theme ?? 'ocean',
+    accent: data.accent ?? '#22d3ee',
+    ...(data.bio ? { bio: data.bio } : {}),
+    ...(data.location ? { location: data.location } : {}),
+    ...(data.website ? { website: data.website } : {}),
+    ...(data.avatar ? { avatar: data.avatar } : {}),
+  },
+});
+
 
     return NextResponse.json({ ok: true, handle: profile.handle }, { status: 200 });
   } catch (e: any) {
