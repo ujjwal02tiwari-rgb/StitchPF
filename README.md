@@ -1,6 +1,6 @@
 # LinkGlyph — Shareable Profile Cards
 
-A fullstack Next.js app (TypeScript, App Router) with Prisma + SQLite that generates beautiful, shareable public profile pages (like LinkedIn's public profile).
+A fullstack Next.js app (TypeScript, App Router) with Prisma + SQLite that generates beautiful, shareable public profile pages.
 
 ## Features
 - Live preview as you type (Framer Motion animations)
