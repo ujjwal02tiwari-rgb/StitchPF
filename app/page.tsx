@@ -21,10 +21,12 @@ export default function Home() {
   const [saving, setSaving] = useState(false);
   const [link, setLink] = useState<string | null>(null);
 
-  const onChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    if (name === 'handle') setHandle(value.trim());
-    else setData(prev => ({ ...prev, [name]: value }));
+   const onChange = (
+   e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+ ) => {
+  const { name, value } = e.currentTarget;
+   if (name === 'handle') setHandle(value.trim());
+   else setData(prev => ({ ...prev, [name]: value })); 
   };
 
   const onAvatar = (file: File | null) => {
@@ -165,11 +167,11 @@ export default function Home() {
               <div className="grid gap-2">
                 <label className="text-sm text-slate-300/90">Avatar</label>
                 <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => onAvatar(e.target.files?.[0] ?? null)}
-                  className="px-3 py-2 rounded-xl bg-white/5 border border-white/10"
-                />
+                   type="file"
+                   accept="image/*"
+                   onChange={(e) => onAvatar(e.currentTarget.files?.[0] ?? null)}
+                   className="px-3 py-2 rounded-xl bg-white/5 border border-white/10"
+               />
               </div>
               <div className="flex gap-3 pt-2">
                 <button
