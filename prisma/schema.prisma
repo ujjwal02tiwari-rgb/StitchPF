@@ -1,12 +1,14 @@
-// prisma/schema.prisma
+
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"   // switched from sqlite to postgresql
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")   // pooler (IPv4)
+  directUrl = env("DIRECT_URL")     // for migrations/introspection
 }
+
 
 model User {
   id        String    @id @default(cuid())
