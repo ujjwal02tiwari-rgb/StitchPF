@@ -82,7 +82,7 @@ export default function Home() {
                   name="handle"
                   value={handle}
                   onChange={onChange}
-                  placeholder="neerajbakshi"
+                  placeholder="ujjwal tiwari"
                   className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 outline-none focus:ring-2 ring-cyan-300/50"
                 />
               </div>
@@ -92,7 +92,7 @@ export default function Home() {
                   name="fullName"
                   value={data.fullName}
                   onChange={onChange}
-                  placeholder="Neeraj Bakshi"
+                  placeholder="Ujjwal Tiwari"
                   className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 outline-none focus:ring-2 ring-cyan-300/50"
                 />
               </div>
@@ -102,7 +102,7 @@ export default function Home() {
                   name="title"
                   value={data.title}
                   onChange={onChange}
-                  placeholder="SDE II — Java, Spring Boot, AWS"
+                  placeholder="Java, Spring Boot, AWS"
                   className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 outline-none focus:ring-2 ring-cyan-300/50"
                 />
               </div>
