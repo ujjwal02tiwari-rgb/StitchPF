@@ -1,23 +1,46 @@
+// prisma/schema.prisma
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "postgresql"   // switched from sqlite to postgresql
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id        String    @id @default(cuid())
+  handle    String    @unique
+  name      String
+  email     String?   @unique
+  avatarB64 String?   // you currently store avatar in DB; keep for now
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  profiles  Profile[]
+}
+
 model Profile {
-  id        String   @id @default(cuid())
-  handle    String   @unique
-  fullName  String
-  title     String
-  bio       String?
-  location  String?
-  website   String?
-  avatar    String?
-  theme     String   @default("ocean")
-  accent    String   @default("#22d3ee")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  bio         String
+  theme       String    // "ocean" | "aurora" | "sunset" | "galaxy"
+  accentHex   String    // e.g., "#22d3ee"
+  cardSlug    String    @unique // /u/[cardSlug] share path
+  published   Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  links       Link[]
+}
+
+model Link {
+  id         String  @id @default(cuid())
+  profileId  String
+  label      String
+  url        String
+
+  profile    Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 }
