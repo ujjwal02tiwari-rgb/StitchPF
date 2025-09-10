@@ -24,6 +24,7 @@ model Profile {
   id        String   @id @default(cuid())
   handle    String   @unique
   userId    String
+fullName    String
   title     String
   bio       String?   // allow nulls
   theme     String
