@@ -54,7 +54,7 @@ export async function POST(request: Request) {
     const profile = await prisma.profile.upsert({
       where: { handle },
       update: {
-        fullName: data.fullName,
+        name: data.fullName,
         title: data.title,
         bio: data.bio ?? undefined,
         location: data.location ?? undefined,
