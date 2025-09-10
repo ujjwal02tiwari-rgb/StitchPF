@@ -23,19 +23,18 @@ model User {
 model Profile {
   id        String   @id @default(cuid())
   handle    String   @unique
-  userId    String
-fullName    String
-  title     String
-  bio       String?   // allow nulls
-  theme     String
-  accentHex String
-  cardSlug  String   @unique
-  published Boolean  @default(true)
+
+  fullName  String?     // used as data.fullName
+  title     String?     // used as data.title
+  bio       String?     // used as data.bio
+  location  String?     // used as data.location
+  website   String?     // used as data.website
+  avatar    String?     // used as data.avatar
+  theme     String      @default("ocean") // used as data.theme
+  accent    String?     // used as data.accent (if you set it)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  links  Link[]
 }
 
 model Link {
