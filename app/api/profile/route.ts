@@ -54,15 +54,16 @@ export async function POST(request: Request) {
     const profile = await prisma.profile.upsert({
       where: { handle },
       update: {
-        fullName: data.fullName,
-        title: data.title,
-        bio: data.bio ?? undefined,
-        location: data.location ?? undefined,
-        website: data.website ?? undefined,
-        avatar: data.avatar ?? undefined,
-        theme: data.theme ?? "ocean",
-        accent: data.accent ?? "#22d3ee",
-      },
+  fullName: data.fullName ?? undefined,
+  title: data.title ?? undefined,
+  bio: data.bio ?? undefined,
+  location: data.location ?? undefined,
+  website: data.website ?? undefined,
+  avatar: data.avatar ?? undefined,
+  theme: data.theme ?? "ocean",
+  accent: data.accent ?? undefined,
+},
+
       create: {
         handle,
         fullName: data.fullName,
