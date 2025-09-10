@@ -1,4 +1,3 @@
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -6,44 +5,43 @@ generator client {
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")   // runtime (PgBouncer/6543)
-  directUrl = env("DIRECT_URL")    // migrations (Session pooler/5432
+  directUrl = env("DIRECT_URL")     // migrations (Session pooler/5432)
 }
 
-
 model User {
-  id        String    @id @default(cuid())
-  handle    String    @unique
+  id        String   @id @default(cuid())
+  handle    String   @unique
   name      String
-  email     String?   @unique
-  avatarB64 String?   // you currently store avatar in DB; keep for now
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  email     String?  @unique
+  avatarB64 String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   profiles  Profile[]
 }
 
 model Profile {
-  id          String   @id @default(cuid())
-  handle      String   @unique
-  userId      String
-  title       String
-  bio         String
-  theme       String    // "ocean" | "aurora" | "sunset" | "galaxy"
-  accentHex   String    // e.g., "#22d3ee"
-  cardSlug    String    @unique // /u/[cardSlug] share path
-  published   Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id        String   @id @default(cuid())
+  handle    String   @unique
+  userId    String
+  title     String
+  bio       String
+  theme     String
+  accentHex String
+  cardSlug  String   @unique
+  published Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  links       Link[]
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  links  Link[]
 }
 
 model Link {
-  id         String  @id @default(cuid())
-  profileId  String
-  label      String
-  url        String
+  id        String  @id @default(cuid())
+  profileId String
+  label     String
+  url       String
 
-  profile    Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  profile   Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 }
