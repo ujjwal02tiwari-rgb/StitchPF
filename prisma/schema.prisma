@@ -5,8 +5,8 @@ generator client {
 
 datasource db {
   provider  = "postgresql"
-  url       = env("DATABASE_URL")   // pooler (IPv4)
-  directUrl = env("DIRECT_URL")     // for migrations/introspection
+  url       = env("postgresql://postgres.dveyuxpxepobwcashnvl:Ujjwal18062002@aws-1-ap-south-1.pooler.supabase.com:5432/postgres?pgbouncer=true&connection_limit=1&sslmode=require")   // pooler (IPv4)
+  directUrl = env("postgresql://postgres.dveyuxpxepobwcashnvl:Ujjwal18062002@aws-1-ap-south-1.pooler.supabase.com:5432/postgres")     // for migrations/introspection
 }
 
 
