@@ -25,7 +25,7 @@ model Profile {
   handle    String   @unique
   userId    String
   title     String
-  bio       String
+  bio       String?   // allow nulls
   theme     String
   accentHex String
   cardSlug  String   @unique
