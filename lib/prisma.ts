@@ -1,12 +1,16 @@
+import { Prisma } from "@prisma/client";
 
-import { PrismaClient } from '@prisma/client';
+const updateData: Prisma.ProfileUpdateInput = {
+  name: data.fullName,
+  title: data.title,
+  bio: data.bio ?? undefined,        // use undefined to skip update
+  location: data.location ?? undefined,
+  // avatar, theme, accent ... (whatever fields actually exist)
+};
 
-const globalForPrisma = global as unknown as { prisma: PrismaClient };
+await prisma.profile.upsert({
+  where: { handle },
+  update: updateData,
+  create: { handle, ...updateData },
+});
 
-export const prisma =
-  globalForPrisma.prisma ??
-  new PrismaClient({
-    log: ['query', 'info', 'warn', 'error'], 
-  });
-
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
