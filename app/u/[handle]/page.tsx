@@ -1,7 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import ProfileCard from "@/components/ProfileCard";
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
+export const revalidate = 0; 
+
 
 export default async function UserProfile({ params }: { params: { handle: string } }) {
   const profile = await prisma.profile.findUnique({
