@@ -18,7 +18,7 @@ const DEFAULT: ProfileData = {
   accent: '#22d3ee',
 };
 
-// theme literal union used by the API
+// Literal union used by the API type
 const THEME_OPTIONS = ['ocean', 'aurora', 'sunset', 'galaxy'] as const;
 type Theme = typeof THEME_OPTIONS[number];
 
@@ -57,15 +57,14 @@ export default function Home() {
       setSaving(true);
       setLink(null);
 
-      // Narrow theme to the literal union expected by the API
+      // Narrow theme to the union expected by the API
       const safeTheme: Theme | undefined =
         data.theme && THEME_OPTIONS.includes(data.theme as Theme)
           ? (data.theme as Theme)
           : undefined;
 
-      // Build a type-safe payload for saveProfile
       const payload: ProfileFormValues = {
-        handle, // (API normalizes to lowercase; client can stay as-is)
+        handle,
         fullName: data.fullName,
         title: data.title,
         bio: data.bio || undefined,
@@ -78,7 +77,6 @@ export default function Home() {
 
       const { handle: savedHandle } = await saveProfile(payload);
       setSaving(false);
-
       const shareUrl = `${location.origin}/u/${savedHandle}`;
       setLink(shareUrl);
       setShowSwirl(true);
@@ -86,16 +84,11 @@ export default function Home() {
       setTimeout(async () => {
         try {
           if (navigator.share) {
-            await navigator.share({
-              title: 'My Profile Card',
-              url: shareUrl,
-            });
+            await navigator.share({ title: 'My Profile Card', url: shareUrl });
           } else {
             await navigator.clipboard.writeText(shareUrl);
           }
-        } catch {
-          // ignore share errors
-        }
+        } catch {}
         router.push(`/u/${savedHandle}`);
       }, 1600);
     } catch (err: any) {
@@ -116,8 +109,7 @@ export default function Home() {
           Build a <span className="gradient-text">shareable profile card</span>
         </motion.h1>
         <p className="mt-4 text-slate-300/90 max-w-2xl">
-          Enter your info, pick a theme, and instantly get a beautiful profile page to
-          share.
+          Enter your info, pick a theme, and instantly get a beautiful profile page to share.
         </p>
 
         <div className="mt-10 grid lg:grid-cols-2 gap-8 items-start">
