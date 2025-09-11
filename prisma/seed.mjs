@@ -2,14 +2,30 @@
 import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
-const handle = process.env.SEED_HANDLE ?? 'ujjwal';
-const email  = process.env.SEED_EMAIL  ?? 'ujjwal@example.com';
+async function main() {
+  const handle = process.env.SEED_HANDLE || 'demo';
+  const email  = process.env.SEED_EMAIL  || 'demo@example.com';
 
-const user = await prisma.user.upsert({
-  where: { handle },
-  update: {},
-  create: { handle, email }, 
-});
+  
+  const user = await prisma.user.upsert({
+    where: { email },
+    update: {},
+    create: {
+      handle,        
+      email,          
+      
+    },
+  });
 
-console.log('USER_ID=' + user.id);
-await prisma.$disconnect();
+  console.log(`USER_ID=${user.id}`);
+}
+
+main()
+  .then(() => prisma.$disconnect())
+  .catch(async (e) => {
+    console.error('Seed failed:', e.message ?? e);
+    if (e?.code) console.error('code:', e.code);
+    if (e?.meta) console.error('meta:', e.meta);
+    await prisma.$disconnect();
+    process.exit(1);
+  });
