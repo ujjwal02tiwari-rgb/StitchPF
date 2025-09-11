@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { headers } from "next/headers";
 import prisma from "@/lib/prisma";
 import { z } from "zod";
 
@@ -15,8 +16,9 @@ import { z } from "zod";
  *  - avatar (string): optional base64 avatar
  *  - theme (string): "ocean" | "aurora" | "sunset" | "galaxy" (optional)
  *  - accent (string): hex colour (optional)
+ *  - userId (string): OPTIONAL if you also send it via `x-user-id` header
  *
- * If a profile exists, it updates it; otherwise it creates a new one.
+ * If a profile exists (by handle), it updates it; otherwise it creates a new one.
  */
 
 const ProfileSchema = z.object({
@@ -40,30 +42,55 @@ const ProfileSchema = z.object({
       message: "Accent must be a valid hex colour",
     })
     .optional(),
+  // allow passing userId in payload; alternatively use x-user-id header
+  userId: z.string().optional(),
 });
 
 export async function POST(request: Request) {
   try {
-    const payload = await request.json();
+    const payload = await request.json().catch(() => ({}));
     const data = ProfileSchema.parse(payload);
+
+    // Resolve the userId: body -> x-user-id header -> first existing user (fallback)
+    const headerUserId = headers().get("x-user-id") ?? undefined;
+    let userId = data.userId ?? headerUserId ?? undefined;
+
+    if (!userId) {
+      // Try to use any existing user as a sensible fallback for local/dev
+      const anyUser = await prisma.user.findFirst({ select: { id: true } });
+      if (anyUser) {
+        userId = anyUser.id;
+      }
+    }
+
+    if (!userId) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            "Missing user id. Provide `userId` in the request body or `x-user-id` header, or seed a User record.",
+        },
+        { status: 401 },
+      );
+    }
 
     // normalise handle to lowercase to ensure case-insensitive uniqueness
     const handle = data.handle.toLowerCase();
 
     // insert or update the profile
     const profile = await prisma.profile.upsert({
-      where: { handle },
+      where: { handle }, // ensure `handle` is @unique in your Prisma schema
       update: {
-  fullName: data.fullName ?? undefined,
-  title: data.title ?? undefined,
-  bio: data.bio ?? undefined,
-  location: data.location ?? undefined,
-  website: data.website ?? undefined,
-  avatar: data.avatar ?? undefined,
-  theme: data.theme ?? "ocean",
-  accent: data.accent ?? undefined,
-},
-
+        fullName: data.fullName ?? undefined,
+        title: data.title ?? undefined,
+        bio: data.bio ?? undefined,
+        location: data.location ?? undefined,
+        website: data.website ?? undefined,
+        avatar: data.avatar ?? undefined,
+        // On update, only change theme/accent when provided
+        theme: data.theme ?? undefined,
+        accent: data.accent ?? undefined,
+      },
       create: {
         handle,
         fullName: data.fullName,
@@ -74,16 +101,24 @@ export async function POST(request: Request) {
         avatar: data.avatar ?? null,
         theme: data.theme ?? "ocean",
         accent: data.accent ?? "#22d3ee",
+
+        // ✅ REQUIRED relation: connect the profile to its user
+        user: { connect: { id: userId } },
+        // (If your Profile model exposes `userId` scalar, you could use `userId` instead.)
       },
+      include: { user: { select: { id: true } } },
     });
 
     // respond with OK and the handle (used by the client to build /u/{handle})
-    return NextResponse.json({ ok: true, handle: profile.handle }, { status: 200 });
-  } catch (err: any) {
-    // return error details if validation or DB upsert fails
     return NextResponse.json(
-      { ok: false, error: err.message ?? "Invalid data" },
-      { status: 400 },
+      { ok: true, handle: profile.handle, userId: profile.user.id },
+      { status: 200 },
     );
+  } catch (err: any) {
+    const message =
+      err?.name === "ZodError"
+        ? err.issues?.[0]?.message || "Invalid data"
+        : err?.message || "Unexpected error";
+    return NextResponse.json({ ok: false, error: message }, { status: 400 });
   }
 }
