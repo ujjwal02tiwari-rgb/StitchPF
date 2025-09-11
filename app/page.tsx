@@ -7,6 +7,8 @@ import SwirlShare from '@/components/SwirlShare';
 import { saveProfile, type ProfileFormValues } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 
+const DEFAULT_ACCENT = '#22d3ee' as const;
+
 const DEFAULT: ProfileData = {
   fullName: '',
   title: '',
@@ -15,7 +17,7 @@ const DEFAULT: ProfileData = {
   website: '',
   avatar: '',
   theme: 'ocean',
-  accent: '#22d3ee',
+  accent: DEFAULT_ACCENT,
 };
 
 // Literal union used by the API type
@@ -89,20 +91,20 @@ function AccentPicker({
   value,
   onChange,
 }: {
-  value: string;
+  value?: string;                // <-- accept undefined
   onChange: (hex: string) => void;
 }) {
-  const derivedHue = useHueFromHex(value);
+  const current = value ?? DEFAULT_ACCENT; // normalize to string
+  const derivedHue = useHueFromHex(current);
   const [hue, setHue] = useState<number>(derivedHue);
 
-  // Keep slider in sync if value changes externally (e.g., from swatch/native input)
+  // Keep slider in sync if value changes externally
   useEffect(() => {
     setHue(derivedHue);
   }, [derivedHue]);
 
   const gradient = useMemo(
-    () =>
-      'linear-gradient(90deg, red, yellow, lime, cyan, blue, magenta, red)',
+    () => 'linear-gradient(90deg, red, yellow, lime, cyan, blue, magenta, red)',
     []
   );
 
@@ -127,17 +129,17 @@ function AccentPicker({
         <div className="flex items-center gap-2">
           <span
             className="inline-block w-6 h-6 rounded-md border border-white/10"
-            style={{ background: value }}
-            title={value}
+            style={{ background: current }}
+            title={current}
           />
-          <code className="text-xs text-slate-300/75">{value}</code>
+          <code className="text-xs text-slate-300/75">{current}</code>
         </div>
       </div>
 
       {/* Swatch bar */}
       <div className="grid grid-cols-8 gap-2">
         {SWATCHES.map((c) => {
-          const active = c.toLowerCase() === value.toLowerCase();
+          const active = c.toLowerCase() === current.toLowerCase();
           return (
             <button
               key={c}
@@ -156,7 +158,7 @@ function AccentPicker({
       <div className="flex items-center gap-3">
         <input
           type="color"
-          value={value}
+          value={current}
           onChange={(e) => onChange(e.currentTarget.value)}
           className="w-9 h-9 p-0 border-0 bg-transparent"
           aria-label="Custom color"
@@ -346,11 +348,11 @@ export default function Home() {
                   </select>
                 </div>
 
-                {/* Replaced hex input with the AccentPicker */}
+                {/* Accent with picker */}
                 <div className="grid gap-2">
                   <label className="text-sm text-slate-300/90">Accent</label>
                   <AccentPicker
-                    value={data.accent || DEFAULT.accent}
+                    value={data.accent} // can be undefined; picker handles fallback
                     onChange={(hex) => setData((prev) => ({ ...prev, accent: hex }))}
                   />
                 </div>
