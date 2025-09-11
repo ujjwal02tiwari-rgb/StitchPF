@@ -350,7 +350,7 @@ export default function Home() {
                 <div className="grid gap-2">
                   <label className="text-sm text-slate-300/90">Accent</label>
                   <AccentPicker
-                    value={data.accent}
+                    value={data.accent || DEFAULT.accent}
                     onChange={(hex) => setData((prev) => ({ ...prev, accent: hex }))}
                   />
                 </div>
