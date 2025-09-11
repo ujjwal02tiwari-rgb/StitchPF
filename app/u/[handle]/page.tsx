@@ -1,43 +1,49 @@
-import { prisma } from "@/lib/prisma";
-import ProfileCard from "@/components/ProfileCard";
+import prisma from '@/lib/prisma';
+import ProfileCard from '@/components/ProfileCard';
+import { notFound } from 'next/navigation';
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0; 
+type PageProps = { params: { handle: string } };
 
+export const revalidate = 60; // optional ISR
 
-export default async function UserProfile({ params }: { params: { handle: string } }) {
+export default async function UserProfilePage({ params }: PageProps) {
+  const handle = params.handle.toLowerCase();
+
   const profile = await prisma.profile.findUnique({
-    where: { handle: params.handle.toLowerCase() }
+    where: { handle },
+    select: {
+      handle: true,
+      fullName: true,
+      title: true,
+      bio: true,
+      location: true,
+      website: true,
+      avatar: true,
+      theme: true,
+      accent: true,
+    },
   });
 
   if (!profile) {
-    return (
-      <main className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold">Profile not found</h1>
-          <p className="text-slate-300/90 mt-2">This handle doesn’t exist yet.</p>
-        </div>
-      </main>
-    );
+    notFound();
   }
 
   return (
     <main className="min-h-screen">
       <section className="max-w-3xl mx-auto px-5 py-14">
-        <ProfileCard data={{
-          fullName: profile.fullName,
-          title: profile.title,
-          bio: profile.bio ?? undefined,
-          location: profile.location ?? undefined,
-          website: profile.website ?? undefined,
-          avatar: profile.avatar ?? undefined,
-          theme: profile.theme,
-          accent: profile.accent,
-          handle: profile.handle,
-        }} />
-        <div className="mt-6 text-center text-slate-300/80">
-          Share: <code className="bg-white/10 px-2 py-1 rounded">{`${process.env.VERCEL_URL ? 'https://' + process.env.VERCEL_URL : ''}/u/${profile.handle}`}</code>
-        </div>
+        <ProfileCard
+          data={{
+            fullName: profile.fullName ?? '',   // <- coerce from string|null to string
+            title: profile.title ?? '',         // <- coerce
+            bio: profile.bio ?? undefined,
+            location: profile.location ?? undefined,
+            website: profile.website ?? undefined,
+            avatar: profile.avatar ?? undefined,
+            theme: profile.theme ?? 'ocean',
+            accent: profile.accent ?? '#22d3ee',
+            handle: profile.handle ?? handle,
+          }}
+        />
       </section>
     </main>
   );
