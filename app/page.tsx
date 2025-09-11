@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import ProfileCard, { ProfileData } from '@/components/ProfileCard';
 import SwirlShare from '@/components/SwirlShare';
-import { saveProfile } from '@/lib/api';
+import { saveProfile, type ProfileFormValues } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 
 const DEFAULT: ProfileData = {
@@ -17,6 +17,10 @@ const DEFAULT: ProfileData = {
   theme: 'ocean',
   accent: '#22d3ee',
 };
+
+// theme literal union used by the API
+const THEME_OPTIONS = ['ocean', 'aurora', 'sunset', 'galaxy'] as const;
+type Theme = typeof THEME_OPTIONS[number];
 
 export default function Home() {
   const [data, setData] = useState<ProfileData>(DEFAULT);
@@ -48,17 +52,37 @@ export default function Home() {
     alert('Link copied!');
   };
 
- 
   const submit = async () => {
     try {
       setSaving(true);
       setLink(null);
-      const { handle: savedHandle } = await saveProfile({ handle, ...data });
+
+      // Narrow theme to the literal union expected by the API
+      const safeTheme: Theme | undefined =
+        data.theme && THEME_OPTIONS.includes(data.theme as Theme)
+          ? (data.theme as Theme)
+          : undefined;
+
+      // Build a type-safe payload for saveProfile
+      const payload: ProfileFormValues = {
+        handle, // (API normalizes to lowercase; client can stay as-is)
+        fullName: data.fullName,
+        title: data.title,
+        bio: data.bio || undefined,
+        location: data.location || undefined,
+        website: data.website || undefined,
+        avatar: data.avatar || undefined,
+        theme: safeTheme,
+        accent: data.accent || undefined,
+      };
+
+      const { handle: savedHandle } = await saveProfile(payload);
       setSaving(false);
+
       const shareUrl = `${location.origin}/u/${savedHandle}`;
       setLink(shareUrl);
       setShowSwirl(true);
-     
+
       setTimeout(async () => {
         try {
           if (navigator.share) {
@@ -70,7 +94,7 @@ export default function Home() {
             await navigator.clipboard.writeText(shareUrl);
           }
         } catch {
-          
+          // ignore share errors
         }
         router.push(`/u/${savedHandle}`);
       }, 1600);
@@ -101,9 +125,7 @@ export default function Home() {
           <div className="glass rounded-3xl p-6 md:p-8">
             <div className="grid gap-4">
               <div className="grid gap-2">
-                <label className="text-sm text-slate-300/90">
-                  Handle (unique URL)
-                </label>
+                <label className="text-sm text-slate-300/90">Handle (unique URL)</label>
                 <input
                   name="handle"
                   value={handle}
@@ -125,9 +147,7 @@ export default function Home() {
               </div>
 
               <div className="grid gap-2">
-                <label className="text-sm text-slate-300/90">
-                  Title / Headline
-                </label>
+                <label className="text-sm text-slate-300/90">Title / Headline</label>
                 <input
                   name="title"
                   value={data.title}
@@ -187,16 +207,14 @@ export default function Home() {
                   </select>
                 </div>
                 <div className="grid gap-2">
-                  <label className="text-sm text-slate-300/90">
-                    Accent (hex)
-                  </label>
-                    <input
-                      name="accent"
-                      value={data.accent}
-                      onChange={onChange}
-                      placeholder="#22d3ee"
-                      className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 outline-none focus:ring-2 ring-cyan-300/50"
-                    />
+                  <label className="text-sm text-slate-300/90">Accent (hex)</label>
+                  <input
+                    name="accent"
+                    value={data.accent}
+                    onChange={onChange}
+                    placeholder="#22d3ee"
+                    className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 outline-none focus:ring-2 ring-cyan-300/50"
+                  />
                 </div>
               </div>
 
@@ -213,9 +231,7 @@ export default function Home() {
               <div className="mt-4 flex gap-3">
                 <button
                   onClick={submit}
-                  disabled={
-                    saving || !handle || !data.fullName || !data.title
-                  }
+                  disabled={saving || !handle || !data.fullName || !data.title}
                   className="px-4 py-2 rounded-xl bg-cyan-500/90 hover:bg-cyan-500 text-white disabled:opacity-50"
                 >
                   {saving ? 'Saving…' : 'Generate'}
@@ -233,8 +249,7 @@ export default function Home() {
 
               {link && (
                 <p className="text-sm text-slate-300/80 mt-2">
-                  Share URL:{' '}
-                  <span className="underline">{link}</span>
+                  Share URL: <span className="underline">{link}</span>
                 </p>
               )}
             </div>
@@ -242,9 +257,7 @@ export default function Home() {
 
           {/* Live Preview with swirl overlay */}
           <div className="sticky top-8">
-            {showSwirl && (
-              <SwirlShare onDone={() => setShowSwirl(false)} />
-            )}
+            {showSwirl && <SwirlShare onDone={() => setShowSwirl(false)} />}
             <ProfileCard data={{ ...data, handle }} />
           </div>
         </div>
