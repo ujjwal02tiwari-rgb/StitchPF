@@ -11,13 +11,16 @@ export type ProfileFormValues = {
   accent?: string;
 };
 
-export async function saveProfile(formData: ProfileFormValues) {
+export async function saveProfile(payload: ProfileFormValues) {
   const res = await fetch('/api/profile', {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(formData),
+    headers: {
+      'Content-Type': 'application/json',
+      'x-user-id': process.env.NEXT_PUBLIC_USER_ID ?? '',
+    },
+    body: JSON.stringify(payload),
   });
-  const json = await res.json();
-  if (!json.ok) throw new Error(json.error || 'Failed to save');
-  return json; 
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
 }
+
