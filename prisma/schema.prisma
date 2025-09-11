@@ -16,7 +16,6 @@ model User {
   avatarB64 String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
   profiles  Profile[]
 }
 
@@ -32,8 +31,12 @@ model Profile {
   avatar    String?     // used as data.avatar
   theme     String      @default("ocean") // used as data.theme
   accent    String?     // used as data.accent (if you set it)
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  links     Link[]                // ← back-relation to Link
+  @@index([userId]) 
 
-  createdAt DateTime @default(now())
+ createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
