@@ -1,194 +1,68 @@
-'use client';
+"use client";
 
-import { useEffect, useMemo, useState } from 'react';
-import { motion } from 'framer-motion';
-import ProfileCard, { ProfileData } from '@/components/ProfileCard';
-import SwirlShare from '@/components/SwirlShare';
-import { saveProfile, type ProfileFormValues } from '@/lib/api';
-import { useRouter } from 'next/navigation';
+import { useEffect, useMemo, useState } from "react";
+import { motion } from "framer-motion";
+import ProfileCard, { ProfileData } from "@/components/ProfileCard";
+import SwirlShare from "@/components/SwirlShare";
+import { saveProfile, type ProfileFormValues } from "@/lib/api";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react"; // 👈 Added
 
-const DEFAULT_ACCENT = '#22d3ee' as const;
+const DEFAULT_ACCENT = "#22d3ee" as const;
 
 const DEFAULT: ProfileData = {
-  fullName: '',
-  title: '',
-  bio: '',
-  location: 'Bengaluru, India',
-  website: '',
-  avatar: '',
-  theme: 'ocean',
+  fullName: "",
+  title: "",
+  bio: "",
+  location: "Bengaluru, India",
+  website: "",
+  avatar: "",
+  theme: "ocean",
   accent: DEFAULT_ACCENT,
 };
 
-// Literal union used by the API type
-const THEME_OPTIONS = ['ocean', 'aurora', 'sunset', 'galaxy'] as const;
-type Theme = typeof THEME_OPTIONS[number];
+const THEME_OPTIONS = ["ocean", "aurora", "sunset", "galaxy"] as const;
+type Theme = (typeof THEME_OPTIONS)[number];
 
-/** ---------- Accent Picker (Hue bar + swatches + native color) ---------- */
-
+/** ---------- Accent Picker (unchanged) ---------- */
 const SWATCHES = [
-  '#22d3ee', '#06b6d4', '#3b82f6', '#8b5cf6',
-  '#f43f5e', '#ef4444', '#f59e0b', '#10b981',
+  "#22d3ee",
+  "#06b6d4",
+  "#3b82f6",
+  "#8b5cf6",
+  "#f43f5e",
+  "#ef4444",
+  "#f59e0b",
+  "#10b981",
 ] as const;
 
-function clamp(n: number, min: number, max: number) { return Math.max(min, Math.min(max, n)); }
-
-function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
-  const m = hex.trim().toLowerCase().match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
-  if (!m) return null;
-  let h = m[1];
-  if (h.length === 3) h = h.split('').map((c) => c + c).join('');
-  const num = parseInt(h, 16);
-  return { r: (num >> 16) & 255, g: (num >> 8) & 255, b: num & 255 };
-}
-
-function rgbToHsl(r: number, g: number, b: number): { h: number; s: number; l: number } {
-  r /= 255; g /= 255; b /= 255;
-  const max = Math.max(r, g, b), min = Math.min(r, g, b);
-  const d = max - min;
-  let h = 0;
-  if (d !== 0) {
-    switch (max) {
-      case r: h = ((g - b) / d) % 6; break;
-      case g: h = (b - r) / d + 2; break;
-      case b: h = (r - g) / d + 4; break;
-    }
-    h = Math.round((h * 60 + 360) % 360);
-  }
-  const l = (max + min) / 2;
-  const s = d === 0 ? 0 : d / (1 - Math.abs(2 * l - 1));
-  return { h, s: Math.round(s * 100), l: Math.round(l * 100) };
-}
-
-function hslToHex(h: number, s: number, l: number): string {
-  s = clamp(s, 0, 100) / 100;
-  l = clamp(l, 0, 100) / 100;
-  const c = (1 - Math.abs(2 * l - 1)) * s;
-  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
-  const m = l - c / 2;
-  let r = 0, g = 0, b = 0;
-  if (0 <= h && h < 60) [r, g, b] = [c, x, 0];
-  else if (60 <= h && h < 120) [r, g, b] = [x, c, 0];
-  else if (120 <= h && h < 180) [r, g, b] = [0, c, x];
-  else if (180 <= h && h < 240) [r, g, b] = [0, x, c];
-  else if (240 <= h && h < 300) [r, g, b] = [x, 0, c];
-  else [r, g, b] = [c, 0, x];
-
-  const toHex = (v: number) => Math.round((v + m) * 255).toString(16).padStart(2, '0');
-  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
-}
-
-function useHueFromHex(hex: string, fallback = 190) {
-  return useMemo(() => {
-    const rgb = hexToRgb(hex);
-    if (!rgb) return fallback;
-    const { h } = rgbToHsl(rgb.r, rgb.g, rgb.b);
-    return Number.isFinite(h) ? h : fallback;
-  }, [hex, fallback]);
-}
-
-function AccentPicker({
-  value,
-  onChange,
-}: {
-  value?: string;                // <-- accept undefined
-  onChange: (hex: string) => void;
-}) {
-  const current = value ?? DEFAULT_ACCENT; // normalize to string
-  const derivedHue = useHueFromHex(current);
-  const [hue, setHue] = useState<number>(derivedHue);
-
-  // Keep slider in sync if value changes externally
-  useEffect(() => {
-    setHue(derivedHue);
-  }, [derivedHue]);
-
-  const gradient = useMemo(
-    () => 'linear-gradient(90deg, red, yellow, lime, cyan, blue, magenta, red)',
-    []
-  );
-
-  return (
-    <div className="grid gap-3">
-      {/* Hue slider */}
-      <div className="grid gap-2">
-        <input
-          type="range"
-          min={0}
-          max={360}
-          value={hue}
-          onChange={(e) => {
-            const h = e.currentTarget.valueAsNumber;
-            setHue(h);
-            onChange(hslToHex(h, 85, 55)); // vibrant S/L
-          }}
-          className="w-full appearance-none h-2 rounded-full outline-none"
-          style={{ background: gradient }}
-          aria-label="Accent hue"
-        />
-        <div className="flex items-center gap-2">
-          <span
-            className="inline-block w-6 h-6 rounded-md border border-white/10"
-            style={{ background: current }}
-            title={current}
-          />
-          <code className="text-xs text-slate-300/75">{current}</code>
-        </div>
-      </div>
-
-      {/* Swatch bar */}
-      <div className="grid grid-cols-8 gap-2">
-        {SWATCHES.map((c) => {
-          const active = c.toLowerCase() === current.toLowerCase();
-          return (
-            <button
-              key={c}
-              type="button"
-              onClick={() => onChange(c)}
-              title={c}
-              aria-label={`Pick ${c}`}
-              className={`h-6 rounded-md border ${active ? 'border-white' : 'border-white/10'}`}
-              style={{ background: c }}
-            />
-          );
-        })}
-      </div>
-
-      {/* Native color input as a fallback/custom choice */}
-      <div className="flex items-center gap-3">
-        <input
-          type="color"
-          value={current}
-          onChange={(e) => onChange(e.currentTarget.value)}
-          className="w-9 h-9 p-0 border-0 bg-transparent"
-          aria-label="Custom color"
-        />
-        <span className="text-xs text-slate-300/70">Custom</span>
-      </div>
-    </div>
-  );
-}
+// ... keep your helper functions (clamp, hexToRgb, rgbToHsl, hslToHex, useHueFromHex, AccentPicker) unchanged ...
 
 /** ------------------------------- Page ------------------------------- */
 
 export default function Home() {
+  const { data: session } = useSession(); // 👈 Grab email if logged in
   const [data, setData] = useState<ProfileData>(DEFAULT);
-  const [handle, setHandle] = useState('');
+  const [handle, setHandle] = useState("");
+  const [email, setEmail] = useState(""); // 👈 track email if no session
   const [saving, setSaving] = useState(false);
   const [link, setLink] = useState<string | null>(null);
   const [showSwirl, setShowSwirl] = useState(false);
   const router = useRouter();
 
   const onChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
   ) => {
     const { name, value } = e.currentTarget;
-    if (name === 'handle') setHandle(value.trim());
+    if (name === "handle") setHandle(value.trim());
+    else if (name === "email") setEmail(value.trim());
     else setData((prev) => ({ ...prev, [name]: value }));
   };
 
   const onAvatar = (file: File | null) => {
-    if (!file) return setData((prev) => ({ ...prev, avatar: '' }));
+    if (!file) return setData((prev) => ({ ...prev, avatar: "" }));
     const reader = new FileReader();
     reader.onload = () =>
       setData((prev) => ({ ...prev, avatar: String(reader.result) }));
@@ -198,7 +72,7 @@ export default function Home() {
   const copy = async () => {
     if (!link) return;
     await navigator.clipboard.writeText(link);
-    alert('Link copied!');
+    alert("Link copied!");
   };
 
   const submit = async () => {
@@ -206,13 +80,13 @@ export default function Home() {
       setSaving(true);
       setLink(null);
 
-      // Narrow theme to the union expected by the API
       const safeTheme: Theme | undefined =
         data.theme && THEME_OPTIONS.includes(data.theme as Theme)
           ? (data.theme as Theme)
           : undefined;
 
-      const payload: ProfileFormValues = {
+      const payload: ProfileFormValues & { email: string } = {
+        email: session?.user?.email ?? email, // ✅ always include
         handle,
         fullName: data.fullName,
         title: data.title,
@@ -224,6 +98,12 @@ export default function Home() {
         accent: data.accent || undefined,
       };
 
+      if (!payload.email) {
+        alert("Email is required.");
+        setSaving(false);
+        return;
+      }
+
       const { handle: savedHandle } = await saveProfile(payload);
       setSaving(false);
       const shareUrl = `${location.origin}/u/${savedHandle}`;
@@ -233,7 +113,7 @@ export default function Home() {
       setTimeout(async () => {
         try {
           if (navigator.share) {
-            await navigator.share({ title: 'My Profile Card', url: shareUrl });
+            await navigator.share({ title: "My Profile Card", url: shareUrl });
           } else {
             await navigator.clipboard.writeText(shareUrl);
           }
@@ -242,7 +122,7 @@ export default function Home() {
       }, 1600);
     } catch (err: any) {
       setSaving(false);
-      alert(err.message || 'Failed to save');
+      alert(err.message || "Failed to save");
     }
   };
 
@@ -258,15 +138,34 @@ export default function Home() {
           Build a <span className="gradient-text">shareable profile card</span>
         </motion.h1>
         <p className="mt-4 text-slate-300/90 max-w-2xl">
-          Enter your info, pick a theme, and instantly get a beautiful profile page to share.
+          Enter your info, pick a theme, and instantly get a beautiful profile
+          page to share.
         </p>
 
         <div className="mt-10 grid lg:grid-cols-2 gap-8 items-start">
           {/* Form */}
           <div className="glass rounded-3xl p-6 md:p-8">
             <div className="grid gap-4">
+              {/* 👇 If no session email, show email field */}
+              {!session?.user?.email && (
+                <div className="grid gap-2">
+                  <label className="text-sm text-slate-300/90">Email</label>
+                  <input
+                    name="email"
+                    value={email}
+                    onChange={onChange}
+                    type="email"
+                    placeholder="you@example.com"
+                    className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 outline-none focus:ring-2 ring-cyan-300/50"
+                    required
+                  />
+                </div>
+              )}
+
               <div className="grid gap-2">
-                <label className="text-sm text-slate-300/90">Handle (unique URL)</label>
+                <label className="text-sm text-slate-300/90">
+                  Handle (unique URL)
+                </label>
                 <input
                   name="handle"
                   value={handle}
@@ -287,94 +186,17 @@ export default function Home() {
                 />
               </div>
 
-              <div className="grid gap-2">
-                <label className="text-sm text-slate-300/90">Title / Headline</label>
-                <input
-                  name="title"
-                  value={data.title}
-                  onChange={onChange}
-                  placeholder="Java, Spring Boot, AWS"
-                  className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 outline-none focus:ring-2 ring-cyan-300/50"
-                />
-              </div>
-
-              <div className="grid gap-2">
-                <label className="text-sm text-slate-300/90">Bio</label>
-                <textarea
-                  name="bio"
-                  value={data.bio}
-                  onChange={onChange}
-                  placeholder="I build fast, reliable services"
-                  className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 outline-none focus:ring-2 ring-cyan-300/50 min-h-[88px]"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <label className="text-sm text-slate-300/90">Location</label>
-                  <input
-                    name="location"
-                    value={data.location}
-                    onChange={onChange}
-                    placeholder="Bengaluru, India"
-                    className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 outline-none focus:ring-2 ring-cyan-300/50"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <label className="text-sm text-slate-300/90">Website</label>
-                  <input
-                    name="website"
-                    value={data.website}
-                    onChange={onChange}
-                    placeholder="https://yourdomain.com"
-                    className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 outline-none focus:ring-2 ring-cyan-300/50"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <label className="text-sm text-slate-300/90">Theme</label>
-                  <select
-                    name="theme"
-                    value={data.theme}
-                    onChange={onChange}
-                    className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 outline-none focus:ring-2 ring-cyan-300/50"
-                  >
-                    <option value="ocean">Ocean</option>
-                    <option value="aurora">Aurora</option>
-                    <option value="sunset">Sunset</option>
-                    <option value="galaxy">Galaxy</option>
-                  </select>
-                </div>
-
-                {/* Accent with picker */}
-                <div className="grid gap-2">
-                  <label className="text-sm text-slate-300/90">Accent</label>
-                  <AccentPicker
-                    value={data.accent} // can be undefined; picker handles fallback
-                    onChange={(hex) => setData((prev) => ({ ...prev, accent: hex }))}
-                  />
-                </div>
-              </div>
-
-              <div className="grid gap-2">
-                <label className="text-sm text-slate-300/90">Avatar</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => onAvatar(e.target.files?.[0] ?? null)}
-                  className="file:mr-3 file:rounded-lg file:border file:border-white/10 file:bg-white/10 file:px-3 file:py-2 file:text-slate-200"
-                />
-              </div>
+              {/* ... keep the rest of your inputs (title, bio, location, website, theme, accent, avatar) unchanged ... */}
 
               <div className="mt-4 flex gap-3">
                 <button
                   onClick={submit}
-                  disabled={saving || !handle || !data.fullName || !data.title}
+                  disabled={
+                    saving || !handle || !data.fullName || !data.title
+                  }
                   className="px-4 py-2 rounded-xl bg-cyan-500/90 hover:bg-cyan-500 text-white disabled:opacity-50"
                 >
-                  {saving ? 'Saving…' : 'Generate'}
+                  {saving ? "Saving…" : "Generate"}
                 </button>
 
                 {link && (
@@ -395,7 +217,7 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Live Preview with swirl overlay */}
+          {/* Live Preview */}
           <div className="sticky top-8">
             {showSwirl && <SwirlShare onDone={() => setShowSwirl(false)} />}
             <ProfileCard data={{ ...data, handle }} />
