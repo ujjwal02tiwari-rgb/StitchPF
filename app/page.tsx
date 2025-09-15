@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import ProfileCard, { ProfileData } from "@/components/ProfileCard";
 import SwirlShare from "@/components/SwirlShare";
-import { saveProfile, type SaveProfilePayload } from "@/lib/api"; // 👈 using SaveProfilePayload
+import { saveProfile, type SaveProfilePayload } from "@/lib/api";
 import { useRouter } from "next/navigation";
 
 const DEFAULT_ACCENT = "#22d3ee" as const;
@@ -23,7 +23,80 @@ const DEFAULT: ProfileData = {
 const THEME_OPTIONS = ["ocean", "aurora", "sunset", "galaxy"] as const;
 type Theme = (typeof THEME_OPTIONS)[number];
 
-/** ---------- Accent Picker helpers (unchanged) ---------- */
+/** ---------- Accent Picker helpers ---------- */
+
+function clamp(n: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, n));
+}
+
+function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
+  const m = hex.trim().toLowerCase().match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+  if (!m) return null;
+  let h = m[1];
+  if (h.length === 3) h = h.split("").map((c) => c + c).join("");
+  const num = parseInt(h, 16);
+  return { r: (num >> 16) & 255, g: (num >> 8) & 255, b: num & 255 };
+}
+
+function rgbToHsl(r: number, g: number, b: number): { h: number; s: number; l: number } {
+  r /= 255;
+  g /= 255;
+  b /= 255;
+  const max = Math.max(r, g, b),
+    min = Math.min(r, g, b);
+  const d = max - min;
+  let h = 0;
+  if (d !== 0) {
+    switch (max) {
+      case r:
+        h = ((g - b) / d) % 6;
+        break;
+      case g:
+        h = (b - r) / d + 2;
+        break;
+      case b:
+        h = (r - g) / d + 4;
+        break;
+    }
+    h = Math.round((h * 60 + 360) % 360);
+  }
+  const l = (max + min) / 2;
+  const s = d === 0 ? 0 : d / (1 - Math.abs(2 * l - 1));
+  return { h, s: Math.round(s * 100), l: Math.round(l * 100) };
+}
+
+function hslToHex(h: number, s: number, l: number): string {
+  s = clamp(s, 0, 100) / 100;
+  l = clamp(l, 0, 100) / 100;
+  const c = (1 - Math.abs(2 * l - 1)) * s;
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+  const m = l - c / 2;
+  let r = 0,
+    g = 0,
+    b = 0;
+  if (0 <= h && h < 60) [r, g, b] = [c, x, 0];
+  else if (60 <= h && h < 120) [r, g, b] = [x, c, 0];
+  else if (120 <= h && h < 180) [r, g, b] = [0, c, x];
+  else if (180 <= h && h < 240) [r, g, b] = [0, x, c];
+  else if (240 <= h && h < 300) [r, g, b] = [x, 0, c];
+  else [r, g, b] = [c, 0, x];
+
+  const toHex = (v: number) =>
+    Math.round((v + m) * 255)
+      .toString(16)
+      .padStart(2, "0");
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
+function useHueFromHex(hex: string, fallback = 190) {
+  return useMemo(() => {
+    const rgb = hexToRgb(hex);
+    if (!rgb) return fallback;
+    const { h } = rgbToHsl(rgb.r, rgb.g, rgb.b);
+    return Number.isFinite(h) ? h : fallback;
+  }, [hex, fallback]);
+}
+
 const SWATCHES = [
   "#22d3ee",
   "#06b6d4",
@@ -34,8 +107,6 @@ const SWATCHES = [
   "#f59e0b",
   "#10b981",
 ] as const;
-
-// keep your clamp, hexToRgb, rgbToHsl, hslToHex, useHueFromHex here ...
 
 function AccentPicker({
   value,
@@ -123,7 +194,7 @@ function AccentPicker({
 export default function Home() {
   const [data, setData] = useState<ProfileData>(DEFAULT);
   const [handle, setHandle] = useState("");
-  const [email, setEmail] = useState(""); // 👈 manual email
+  const [email, setEmail] = useState("");
   const [saving, setSaving] = useState(false);
   const [link, setLink] = useState<string | null>(null);
   const [showSwirl, setShowSwirl] = useState(false);
@@ -165,7 +236,7 @@ export default function Home() {
           : undefined;
 
       const payload: SaveProfilePayload = {
-        email, // 👈 required
+        email,
         handle,
         fullName: data.fullName,
         title: data.title,
@@ -262,7 +333,7 @@ export default function Home() {
                 />
               </div>
 
-              {/* keep the rest of your inputs (title, bio, location, website, theme, accent, avatar) unchanged */}
+              {/* keep rest of your inputs (title, bio, location, website, theme, accent, avatar) unchanged */}
 
               <div className="mt-4 flex gap-3">
                 <button
