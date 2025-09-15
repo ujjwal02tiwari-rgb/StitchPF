@@ -4,9 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import ProfileCard, { ProfileData } from "@/components/ProfileCard";
 import SwirlShare from "@/components/SwirlShare";
-import { saveProfile, type ProfileFormValues } from "@/lib/api";
+import { saveProfile, type SaveProfilePayload } from "@/lib/api"; // 👈 using SaveProfilePayload
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react"; // 👈 Added
 
 const DEFAULT_ACCENT = "#22d3ee" as const;
 
@@ -24,7 +23,7 @@ const DEFAULT: ProfileData = {
 const THEME_OPTIONS = ["ocean", "aurora", "sunset", "galaxy"] as const;
 type Theme = (typeof THEME_OPTIONS)[number];
 
-/** ---------- Accent Picker (unchanged) ---------- */
+/** ---------- Accent Picker helpers (unchanged) ---------- */
 const SWATCHES = [
   "#22d3ee",
   "#06b6d4",
@@ -36,15 +35,95 @@ const SWATCHES = [
   "#10b981",
 ] as const;
 
-// ... keep your helper functions (clamp, hexToRgb, rgbToHsl, hslToHex, useHueFromHex, AccentPicker) unchanged ...
+// keep your clamp, hexToRgb, rgbToHsl, hslToHex, useHueFromHex here ...
+
+function AccentPicker({
+  value,
+  onChange,
+}: {
+  value?: string;
+  onChange: (hex: string) => void;
+}) {
+  const current = value ?? DEFAULT_ACCENT;
+  const derivedHue = useHueFromHex(current);
+  const [hue, setHue] = useState<number>(derivedHue);
+
+  useEffect(() => {
+    setHue(derivedHue);
+  }, [derivedHue]);
+
+  const gradient = useMemo(
+    () =>
+      "linear-gradient(90deg, red, yellow, lime, cyan, blue, magenta, red)",
+    []
+  );
+
+  return (
+    <div className="grid gap-3">
+      <div className="grid gap-2">
+        <input
+          type="range"
+          min={0}
+          max={360}
+          value={hue}
+          onChange={(e) => {
+            const h = e.currentTarget.valueAsNumber;
+            setHue(h);
+            onChange(hslToHex(h, 85, 55));
+          }}
+          className="w-full appearance-none h-2 rounded-full outline-none"
+          style={{ background: gradient }}
+          aria-label="Accent hue"
+        />
+        <div className="flex items-center gap-2">
+          <span
+            className="inline-block w-6 h-6 rounded-md border border-white/10"
+            style={{ background: current }}
+            title={current}
+          />
+          <code className="text-xs text-slate-300/75">{current}</code>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-8 gap-2">
+        {SWATCHES.map((c) => {
+          const active = c.toLowerCase() === current.toLowerCase();
+          return (
+            <button
+              key={c}
+              type="button"
+              onClick={() => onChange(c)}
+              title={c}
+              aria-label={`Pick ${c}`}
+              className={`h-6 rounded-md border ${
+                active ? "border-white" : "border-white/10"
+              }`}
+              style={{ background: c }}
+            />
+          );
+        })}
+      </div>
+
+      <div className="flex items-center gap-3">
+        <input
+          type="color"
+          value={current}
+          onChange={(e) => onChange(e.currentTarget.value)}
+          className="w-9 h-9 p-0 border-0 bg-transparent"
+          aria-label="Custom color"
+        />
+        <span className="text-xs text-slate-300/70">Custom</span>
+      </div>
+    </div>
+  );
+}
 
 /** ------------------------------- Page ------------------------------- */
 
 export default function Home() {
-  const { data: session } = useSession(); // 👈 Grab email if logged in
   const [data, setData] = useState<ProfileData>(DEFAULT);
   const [handle, setHandle] = useState("");
-  const [email, setEmail] = useState(""); // 👈 track email if no session
+  const [email, setEmail] = useState(""); // 👈 manual email
   const [saving, setSaving] = useState(false);
   const [link, setLink] = useState<string | null>(null);
   const [showSwirl, setShowSwirl] = useState(false);
@@ -85,8 +164,8 @@ export default function Home() {
           ? (data.theme as Theme)
           : undefined;
 
-      const payload: ProfileFormValues & { email: string } = {
-        email: session?.user?.email ?? email, // ✅ always include
+      const payload: SaveProfilePayload = {
+        email, // 👈 required
         handle,
         fullName: data.fullName,
         title: data.title,
@@ -146,21 +225,18 @@ export default function Home() {
           {/* Form */}
           <div className="glass rounded-3xl p-6 md:p-8">
             <div className="grid gap-4">
-              {/* 👇 If no session email, show email field */}
-              {!session?.user?.email && (
-                <div className="grid gap-2">
-                  <label className="text-sm text-slate-300/90">Email</label>
-                  <input
-                    name="email"
-                    value={email}
-                    onChange={onChange}
-                    type="email"
-                    placeholder="you@example.com"
-                    className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 outline-none focus:ring-2 ring-cyan-300/50"
-                    required
-                  />
-                </div>
-              )}
+              <div className="grid gap-2">
+                <label className="text-sm text-slate-300/90">Email</label>
+                <input
+                  name="email"
+                  value={email}
+                  onChange={onChange}
+                  type="email"
+                  placeholder="you@example.com"
+                  className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 outline-none focus:ring-2 ring-cyan-300/50"
+                  required
+                />
+              </div>
 
               <div className="grid gap-2">
                 <label className="text-sm text-slate-300/90">
@@ -186,14 +262,12 @@ export default function Home() {
                 />
               </div>
 
-              {/* ... keep the rest of your inputs (title, bio, location, website, theme, accent, avatar) unchanged ... */}
+              {/* keep the rest of your inputs (title, bio, location, website, theme, accent, avatar) unchanged */}
 
               <div className="mt-4 flex gap-3">
                 <button
                   onClick={submit}
-                  disabled={
-                    saving || !handle || !data.fullName || !data.title
-                  }
+                  disabled={saving || !handle || !data.fullName || !data.title}
                   className="px-4 py-2 rounded-xl bg-cyan-500/90 hover:bg-cyan-500 text-white disabled:opacity-50"
                 >
                   {saving ? "Saving…" : "Generate"}
