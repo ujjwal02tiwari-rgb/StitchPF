@@ -4,31 +4,54 @@ import prisma from "@/lib/prisma";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { email, handle } = body;
+    const {
+      email,
+      handle,
+      fullName,
+      title,
+      bio,
+      location,
+      website,
+      avatar,
+      theme,
+      accent,
+    } = body;
 
-    if (!email || !handle) {
+    if (!email || !handle || !fullName || !title) {
       return NextResponse.json(
-        { error: "Email and handle are required." },
+        { error: "Email, handle, fullName, and title are required." },
         { status: 400 }
       );
     }
 
-    let userId: string;
-
     const user = await prisma.user.upsert({
-      where: { email }, // must be UNIQUE in your schema
-      update: {},
-      create: {
+      where: { email }, // email must be unique in your schema
+      update: {
         handle,
+        name: fullName,
+        title,
+        bio,
+        location,
+        website,
+        avatar,
+        theme,
+        accent,
+      },
+      create: {
         email,
-        
-        name: body.name ?? handle,
+        handle,
+        name: fullName,
+        title,
+        bio,
+        location,
+        website,
+        avatar,
+        theme,
+        accent,
       },
     });
 
-    userId = user.id;
-
-    return NextResponse.json({ userId }, { status: 200 });
+    return NextResponse.json(user, { status: 200 });
   } catch (error) {
     console.error("Error in /api/profile:", error);
     return NextResponse.json(
