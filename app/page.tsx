@@ -1,27 +1,27 @@
-"use client";
+'use client';
 
-import { useEffect, useMemo, useState } from "react";
-import { motion } from "framer-motion";
-import ProfileCard, { ProfileData } from "@/components/ProfileCard";
-import SwirlShare from "@/components/SwirlShare";
-import { saveProfile, type SaveProfilePayload } from "@/lib/api";
-import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
+import ProfileCard, { ProfileData } from '@/components/ProfileCard';
+import SwirlShare from '@/components/SwirlShare';
+import { saveProfile, type SaveProfilePayload } from '@/lib/api';
+import { useRouter } from 'next/navigation';
 
-const DEFAULT_ACCENT = "#22d3ee" as const;
+const DEFAULT_ACCENT = '#22d3ee' as const;
 
 const DEFAULT: ProfileData = {
-  fullName: "",
-  title: "",
-  bio: "",
-  location: "Bengaluru, India",
-  website: "",
-  avatar: "",
-  theme: "ocean",
+  fullName: '',
+  title: '',
+  bio: '',
+  location: 'Bengaluru, India',
+  website: '',
+  avatar: '',
+  theme: 'ocean',
   accent: DEFAULT_ACCENT,
 };
 
-const THEME_OPTIONS = ["ocean", "aurora", "sunset", "galaxy"] as const;
-type Theme = (typeof THEME_OPTIONS)[number];
+const THEME_OPTIONS = ['ocean', 'aurora', 'sunset', 'galaxy'] as const;
+type Theme = typeof THEME_OPTIONS[number];
 
 /** ---------- Accent Picker helpers ---------- */
 
@@ -33,30 +33,21 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
   const m = hex.trim().toLowerCase().match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
   if (!m) return null;
   let h = m[1];
-  if (h.length === 3) h = h.split("").map((c) => c + c).join("");
+  if (h.length === 3) h = h.split('').map((c) => c + c).join('');
   const num = parseInt(h, 16);
   return { r: (num >> 16) & 255, g: (num >> 8) & 255, b: num & 255 };
 }
 
 function rgbToHsl(r: number, g: number, b: number): { h: number; s: number; l: number } {
-  r /= 255;
-  g /= 255;
-  b /= 255;
-  const max = Math.max(r, g, b),
-    min = Math.min(r, g, b);
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
   const d = max - min;
   let h = 0;
   if (d !== 0) {
     switch (max) {
-      case r:
-        h = ((g - b) / d) % 6;
-        break;
-      case g:
-        h = (b - r) / d + 2;
-        break;
-      case b:
-        h = (r - g) / d + 4;
-        break;
+      case r: h = ((g - b) / d) % 6; break;
+      case g: h = (b - r) / d + 2; break;
+      case b: h = (r - g) / d + 4; break;
     }
     h = Math.round((h * 60 + 360) % 360);
   }
@@ -71,9 +62,7 @@ function hslToHex(h: number, s: number, l: number): string {
   const c = (1 - Math.abs(2 * l - 1)) * s;
   const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
   const m = l - c / 2;
-  let r = 0,
-    g = 0,
-    b = 0;
+  let r = 0, g = 0, b = 0;
   if (0 <= h && h < 60) [r, g, b] = [c, x, 0];
   else if (60 <= h && h < 120) [r, g, b] = [x, c, 0];
   else if (120 <= h && h < 180) [r, g, b] = [0, c, x];
@@ -84,7 +73,7 @@ function hslToHex(h: number, s: number, l: number): string {
   const toHex = (v: number) =>
     Math.round((v + m) * 255)
       .toString(16)
-      .padStart(2, "0");
+      .padStart(2, '0');
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
 
@@ -98,14 +87,8 @@ function useHueFromHex(hex: string, fallback = 190) {
 }
 
 const SWATCHES = [
-  "#22d3ee",
-  "#06b6d4",
-  "#3b82f6",
-  "#8b5cf6",
-  "#f43f5e",
-  "#ef4444",
-  "#f59e0b",
-  "#10b981",
+  '#22d3ee', '#06b6d4', '#3b82f6', '#8b5cf6',
+  '#f43f5e', '#ef4444', '#f59e0b', '#10b981',
 ] as const;
 
 function AccentPicker({
@@ -124,8 +107,7 @@ function AccentPicker({
   }, [derivedHue]);
 
   const gradient = useMemo(
-    () =>
-      "linear-gradient(90deg, red, yellow, lime, cyan, blue, magenta, red)",
+    () => 'linear-gradient(90deg, red, yellow, lime, cyan, blue, magenta, red)',
     []
   );
 
@@ -166,9 +148,7 @@ function AccentPicker({
               onClick={() => onChange(c)}
               title={c}
               aria-label={`Pick ${c}`}
-              className={`h-6 rounded-md border ${
-                active ? "border-white" : "border-white/10"
-              }`}
+              className={`h-6 rounded-md border ${active ? 'border-white' : 'border-white/10'}`}
               style={{ background: c }}
             />
           );
@@ -193,26 +173,24 @@ function AccentPicker({
 
 export default function Home() {
   const [data, setData] = useState<ProfileData>(DEFAULT);
-  const [handle, setHandle] = useState("");
-  const [email, setEmail] = useState("");
+  const [handle, setHandle] = useState('');
+  const [email, setEmail] = useState('');
   const [saving, setSaving] = useState(false);
   const [link, setLink] = useState<string | null>(null);
   const [showSwirl, setShowSwirl] = useState(false);
   const router = useRouter();
 
   const onChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.currentTarget;
-    if (name === "handle") setHandle(value.trim());
-    else if (name === "email") setEmail(value.trim());
+    if (name === 'handle') setHandle(value.trim());
+    else if (name === 'email') setEmail(value.trim());
     else setData((prev) => ({ ...prev, [name]: value }));
   };
 
   const onAvatar = (file: File | null) => {
-    if (!file) return setData((prev) => ({ ...prev, avatar: "" }));
+    if (!file) return setData((prev) => ({ ...prev, avatar: '' }));
     const reader = new FileReader();
     reader.onload = () =>
       setData((prev) => ({ ...prev, avatar: String(reader.result) }));
@@ -222,7 +200,7 @@ export default function Home() {
   const copy = async () => {
     if (!link) return;
     await navigator.clipboard.writeText(link);
-    alert("Link copied!");
+    alert('Link copied!');
   };
 
   const submit = async () => {
@@ -249,7 +227,7 @@ export default function Home() {
       };
 
       if (!payload.email) {
-        alert("Email is required.");
+        alert('Email is required.');
         setSaving(false);
         return;
       }
@@ -263,7 +241,7 @@ export default function Home() {
       setTimeout(async () => {
         try {
           if (navigator.share) {
-            await navigator.share({ title: "My Profile Card", url: shareUrl });
+            await navigator.share({ title: 'My Profile Card', url: shareUrl });
           } else {
             await navigator.clipboard.writeText(shareUrl);
           }
@@ -272,7 +250,7 @@ export default function Home() {
       }, 1600);
     } catch (err: any) {
       setSaving(false);
-      alert(err.message || "Failed to save");
+      alert(err.message || 'Failed to save');
     }
   };
 
@@ -288,14 +266,14 @@ export default function Home() {
           Build a <span className="gradient-text">shareable profile card</span>
         </motion.h1>
         <p className="mt-4 text-slate-300/90 max-w-2xl">
-          Enter your info, pick a theme, and instantly get a beautiful profile
-          page to share.
+          Enter your info, pick a theme, and instantly get a beautiful profile page to share.
         </p>
 
         <div className="mt-10 grid lg:grid-cols-2 gap-8 items-start">
           {/* Form */}
           <div className="glass rounded-3xl p-6 md:p-8">
             <div className="grid gap-4">
+              {/* Email */}
               <div className="grid gap-2">
                 <label className="text-sm text-slate-300/90">Email</label>
                 <input
@@ -309,10 +287,9 @@ export default function Home() {
                 />
               </div>
 
+              {/* Handle */}
               <div className="grid gap-2">
-                <label className="text-sm text-slate-300/90">
-                  Handle (unique URL)
-                </label>
+                <label className="text-sm text-slate-300/90">Handle (unique URL)</label>
                 <input
                   name="handle"
                   value={handle}
@@ -322,6 +299,7 @@ export default function Home() {
                 />
               </div>
 
+              {/* Full Name */}
               <div className="grid gap-2">
                 <label className="text-sm text-slate-300/90">Full Name</label>
                 <input
@@ -333,15 +311,98 @@ export default function Home() {
                 />
               </div>
 
-              {/* keep rest of your inputs (title, bio, location, website, theme, accent, avatar) unchanged */}
+              {/* Title */}
+              <div className="grid gap-2">
+                <label className="text-sm text-slate-300/90">Title / Headline</label>
+                <input
+                  name="title"
+                  value={data.title}
+                  onChange={onChange}
+                  placeholder="Java, Spring Boot, AWS"
+                  className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 outline-none focus:ring-2 ring-cyan-300/50"
+                />
+              </div>
 
+              {/* Bio */}
+              <div className="grid gap-2">
+                <label className="text-sm text-slate-300/90">Bio</label>
+                <textarea
+                  name="bio"
+                  value={data.bio}
+                  onChange={onChange}
+                  placeholder="I build fast, reliable services"
+                  className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 outline-none focus:ring-2 ring-cyan-300/50 min-h-[88px]"
+                />
+              </div>
+
+              {/* Location + Website */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <label className="text-sm text-slate-300/90">Location</label>
+                  <input
+                    name="location"
+                    value={data.location}
+                    onChange={onChange}
+                    placeholder="Bengaluru, India"
+                    className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 outline-none focus:ring-2 ring-cyan-300/50"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <label className="text-sm text-slate-300/90">Website</label>
+                  <input
+                    name="website"
+                    value={data.website}
+                    onChange={onChange}
+                    placeholder="https://yourdomain.com"
+                    className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 outline-none focus:ring-2 ring-cyan-300/50"
+                  />
+                </div>
+              </div>
+
+              {/* Theme + Accent */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <label className="text-sm text-slate-300/90">Theme</label>
+                  <select
+                    name="theme"
+                    value={data.theme}
+                    onChange={onChange}
+                    className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 outline-none focus:ring-2 ring-cyan-300/50"
+                  >
+                    <option value="ocean">Ocean</option>
+                    <option value="aurora">Aurora</option>
+                    <option value="sunset">Sunset</option>
+                    <option value="galaxy">Galaxy</option>
+                  </select>
+                </div>
+                <div className="grid gap-2">
+                  <label className="text-sm text-slate-300/90">Accent</label>
+                  <AccentPicker
+                    value={data.accent}
+                    onChange={(hex) => setData((prev) => ({ ...prev, accent: hex }))}
+                  />
+                </div>
+              </div>
+
+              {/* Avatar */}
+              <div className="grid gap-2">
+                <label className="text-sm text-slate-300/90">Avatar</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => onAvatar(e.target.files?.[0] ?? null)}
+                  className="file:mr-3 file:rounded-lg file:border file:border-white/10 file:bg-white/10 file:px-3 file:py-2 file:text-slate-200"
+                />
+              </div>
+
+              {/* Submit + Copy */}
               <div className="mt-4 flex gap-3">
                 <button
                   onClick={submit}
                   disabled={saving || !handle || !data.fullName || !data.title}
                   className="px-4 py-2 rounded-xl bg-cyan-500/90 hover:bg-cyan-500 text-white disabled:opacity-50"
                 >
-                  {saving ? "Saving…" : "Generate"}
+                  {saving ? 'Saving…' : 'Generate'}
                 </button>
 
                 {link && (
