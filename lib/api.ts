@@ -1,4 +1,5 @@
 
+
 export type ProfileFormValues = {
   handle: string;
   fullName: string;
@@ -11,19 +12,21 @@ export type ProfileFormValues = {
   accent?: string;
 };
 
-export async function saveProfile(payload: ProfileFormValues) {
-  const res = await fetch('/api/profile', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-user-id': process.env.NEXT_PUBLIC_USER_ID || '',
-    },
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || 'Failed to save');
-  }
-  return res.json();
-}
 
+export type SaveProfilePayload = ProfileFormValues & { email: string };
+
+export async function saveProfile(values: SaveProfilePayload) {
+  const res = await fetch("/api/profile", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(values),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || "Failed to save profile");
+  }
+
+  
+  return res.json() as Promise<{ handle: string }>;
+}
