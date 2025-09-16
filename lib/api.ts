@@ -1,8 +1,7 @@
 import { ProfileData } from '@/components/ProfileCard';
 
 /**
- * The payload we send to the backend API when saving a profile.
- * Matches the fields in your Prisma `Profile` model (minus `title` which we removed).
+ * Payload sent when saving a profile.
  */
 export type SaveProfilePayload = {
   email: string;
@@ -17,7 +16,8 @@ export type SaveProfilePayload = {
 };
 
 /**
- * Call the API to save a profile
+ * Save or update a profile via the API.
+ * Always throws with a meaningful error if saving fails.
  */
 export async function saveProfile(payload: SaveProfilePayload): Promise<{ handle: string }> {
   const res = await fetch('/api/profile', {
@@ -26,9 +26,15 @@ export async function saveProfile(payload: SaveProfilePayload): Promise<{ handle
     body: JSON.stringify(payload),
   });
 
+  const data = await res.json();
+
   if (!res.ok) {
-    throw new Error(`Failed to save profile: ${res.statusText}`);
+    throw new Error(data.error || 'Failed to save profile');
   }
 
-  return res.json();
+  if (!data.handle) {
+    throw new Error('Profile response missing handle');
+  }
+
+  return data;
 }
