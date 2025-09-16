@@ -1,50 +1,34 @@
-import prisma from '@/lib/prisma';
-import ProfileCard from '@/components/ProfileCard';
+'use client';
+
 import { notFound } from 'next/navigation';
+import ProfileCard, { ProfileData } from '@/components/ProfileCard';
+import { prisma } from '@/lib/prisma';
 
-type PageProps = { params: { handle: string } };
+type ProfilePageProps = {
+  params: { handle: string };
+};
 
-export const revalidate = 60; // optional ISR
-
-export default async function UserProfilePage({ params }: PageProps) {
-  const handle = params.handle.toLowerCase();
-
+export default async function ProfilePage({ params }: ProfilePageProps) {
   const profile = await prisma.profile.findUnique({
-    where: { handle },
-    select: {
-      handle: true,
-      fullName: true,
-      title: true,
-      bio: true,
-      location: true,
-      website: true,
-      avatar: true,
-      theme: true,
-      accent: true,
-    },
+    where: { handle: params.handle },
   });
 
-  if (!profile) {
-    notFound();
-  }
+  if (!profile) return notFound();
+
+  const data: ProfileData = {
+    fullName: profile.fullName ?? '',
+    bio: profile.bio ?? undefined,
+    location: profile.location ?? undefined,
+    website: profile.website ?? undefined,
+    avatar: profile.avatar ?? undefined,
+    theme: profile.theme ?? 'ocean',
+    accent: profile.accent ?? undefined,
+    handle: profile.handle ?? undefined,
+  };
 
   return (
-    <main className="min-h-screen">
-      <section className="max-w-3xl mx-auto px-5 py-14">
-        <ProfileCard
-          data={{
-            fullName: profile.fullName ?? '',   // <- coerce from string|null to string
-            title: profile.title ?? '',         // <- coerce
-            bio: profile.bio ?? undefined,
-            location: profile.location ?? undefined,
-            website: profile.website ?? undefined,
-            avatar: profile.avatar ?? undefined,
-            theme: profile.theme ?? 'ocean',
-            accent: profile.accent ?? '#22d3ee',
-            handle: profile.handle ?? handle,
-          }}
-        />
-      </section>
+    <main className="min-h-screen flex items-center justify-center py-10 px-5">
+      <ProfileCard data={data} />
     </main>
   );
 }
