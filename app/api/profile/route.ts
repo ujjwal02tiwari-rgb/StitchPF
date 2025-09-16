@@ -4,24 +4,26 @@ import { prisma } from "@/lib/prisma";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { userId, handle, fullName, bio, location, website } = body;
+    const { handle, fullName, bio, location, website, avatar, theme, accent } = body;
 
-    if (!userId) {
-      return NextResponse.json({ error: "Missing userId" }, { status: 400 });
+    if (!handle) {
+      return NextResponse.json({ error: "Missing handle" }, { status: 400 });
     }
 
-    const updatedUser = await prisma.user.update({
-      where: { id: userId },
+    const updatedProfile = await prisma.profile.update({
+      where: { handle },
       data: {
-        handle,
-        name: fullName,
+        fullName,
         bio,
         location,
         website,
+        avatar,
+        theme,
+        accent,
       },
     });
 
-    return NextResponse.json(updatedUser, { status: 200 });
+    return NextResponse.json(updatedProfile, { status: 200 });
   } catch (err) {
     console.error("Error updating profile:", err);
     return NextResponse.json(
