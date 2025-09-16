@@ -10,19 +10,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Email and handle are required" }, { status: 400 });
     }
 
-    // Ensure a User exists for this email
+    // Ensure User exists
     let user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
       user = await prisma.user.create({
         data: {
           email,
-          handle,
+          handle,        // initial handle for user
           name: fullName,
         },
       });
     }
 
-    // Create or update Profile for this handle
+    // Upsert Profile
     const profile = await prisma.profile.upsert({
       where: { handle },
       update: {
@@ -31,7 +31,7 @@ export async function POST(req: Request) {
         location,
         website,
         avatar,
-        theme,
+        theme: theme || "ocean",
         accent,
       },
       create: {
@@ -50,6 +50,15 @@ export async function POST(req: Request) {
     return NextResponse.json(profile, { status: 200 });
   } catch (err: any) {
     console.error("Error saving profile:", err);
+
+    if (err.code === "P2002") {
+      // Prisma unique constraint error
+      return NextResponse.json(
+        { error: "Handle already exists. Please choose another." },
+        { status: 400 }
+      );
+    }
+
     return NextResponse.json(
       { error: "Failed to save profile" },
       { status: 500 }
