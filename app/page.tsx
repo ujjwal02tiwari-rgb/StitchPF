@@ -11,7 +11,6 @@ const DEFAULT_ACCENT = '#22d3ee' as const;
 
 const DEFAULT: ProfileData = {
   fullName: '',
-  title: '',
   bio: '',
   location: 'Bengaluru, India',
   website: '',
@@ -217,7 +216,6 @@ export default function Home() {
         email,
         handle,
         fullName: data.fullName,
-        title: data.title,
         bio: data.bio || undefined,
         location: data.location || undefined,
         website: data.website || undefined,
@@ -311,18 +309,6 @@ export default function Home() {
                 />
               </div>
 
-              {/* Title */}
-              <div className="grid gap-2">
-                <label className="text-sm text-slate-300/90">Title / Headline</label>
-                <input
-                  name="title"
-                  value={data.title}
-                  onChange={onChange}
-                  placeholder="Java, Spring Boot, AWS"
-                  className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 outline-none focus:ring-2 ring-cyan-300/50"
-                />
-              </div>
-
               {/* Bio */}
               <div className="grid gap-2">
                 <label className="text-sm text-slate-300/90">Bio</label>
@@ -399,7 +385,7 @@ export default function Home() {
               <div className="mt-4 flex gap-3">
                 <button
                   onClick={submit}
-                  disabled={saving || !handle || !data.fullName || !data.title}
+                  disabled={saving || !handle || !data.fullName}
                   className="px-4 py-2 rounded-xl bg-cyan-500/90 hover:bg-cyan-500 text-white disabled:opacity-50"
                 >
                   {saving ? 'Saving…' : 'Generate'}
