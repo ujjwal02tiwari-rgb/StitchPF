@@ -4,7 +4,6 @@ import { Globe, MapPin, Link as LinkIcon } from 'lucide-react';
 
 export type ProfileData = {
   fullName: string;
-  title: string;
   bio?: string;
   location?: string;
   website?: string;
