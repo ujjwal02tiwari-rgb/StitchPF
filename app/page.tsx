@@ -22,152 +22,6 @@ const DEFAULT: ProfileData = {
 const THEME_OPTIONS = ['ocean', 'aurora', 'sunset', 'galaxy'] as const;
 type Theme = typeof THEME_OPTIONS[number];
 
-/** ---------- Accent Picker helpers ---------- */
-
-function clamp(n: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, n));
-}
-
-function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
-  const m = hex.trim().toLowerCase().match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
-  if (!m) return null;
-  let h = m[1];
-  if (h.length === 3) h = h.split('').map((c) => c + c).join('');
-  const num = parseInt(h, 16);
-  return { r: (num >> 16) & 255, g: (num >> 8) & 255, b: num & 255 };
-}
-
-function rgbToHsl(r: number, g: number, b: number): { h: number; s: number; l: number } {
-  r /= 255; g /= 255; b /= 255;
-  const max = Math.max(r, g, b), min = Math.min(r, g, b);
-  const d = max - min;
-  let h = 0;
-  if (d !== 0) {
-    switch (max) {
-      case r: h = ((g - b) / d) % 6; break;
-      case g: h = (b - r) / d + 2; break;
-      case b: h = (r - g) / d + 4; break;
-    }
-    h = Math.round((h * 60 + 360) % 360);
-  }
-  const l = (max + min) / 2;
-  const s = d === 0 ? 0 : d / (1 - Math.abs(2 * l - 1));
-  return { h, s: Math.round(s * 100), l: Math.round(l * 100) };
-}
-
-function hslToHex(h: number, s: number, l: number): string {
-  s = clamp(s, 0, 100) / 100;
-  l = clamp(l, 0, 100) / 100;
-  const c = (1 - Math.abs(2 * l - 1)) * s;
-  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
-  const m = l - c / 2;
-  let r = 0, g = 0, b = 0;
-  if (0 <= h && h < 60) [r, g, b] = [c, x, 0];
-  else if (60 <= h && h < 120) [r, g, b] = [x, c, 0];
-  else if (120 <= h && h < 180) [r, g, b] = [0, c, x];
-  else if (180 <= h && h < 240) [r, g, b] = [0, x, c];
-  else if (240 <= h && h < 300) [r, g, b] = [x, 0, c];
-  else [r, g, b] = [c, 0, x];
-
-  const toHex = (v: number) =>
-    Math.round((v + m) * 255)
-      .toString(16)
-      .padStart(2, '0');
-  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
-}
-
-function useHueFromHex(hex: string, fallback = 190) {
-  return useMemo(() => {
-    const rgb = hexToRgb(hex);
-    if (!rgb) return fallback;
-    const { h } = rgbToHsl(rgb.r, rgb.g, rgb.b);
-    return Number.isFinite(h) ? h : fallback;
-  }, [hex, fallback]);
-}
-
-const SWATCHES = [
-  '#22d3ee', '#06b6d4', '#3b82f6', '#8b5cf6',
-  '#f43f5e', '#ef4444', '#f59e0b', '#10b981',
-] as const;
-
-function AccentPicker({
-  value,
-  onChange,
-}: {
-  value?: string;
-  onChange: (hex: string) => void;
-}) {
-  const current = value ?? DEFAULT_ACCENT;
-  const derivedHue = useHueFromHex(current);
-  const [hue, setHue] = useState<number>(derivedHue);
-
-  useEffect(() => {
-    setHue(derivedHue);
-  }, [derivedHue]);
-
-  const gradient = useMemo(
-    () => 'linear-gradient(90deg, red, yellow, lime, cyan, blue, magenta, red)',
-    []
-  );
-
-  return (
-    <div className="grid gap-3">
-      <div className="grid gap-2">
-        <input
-          type="range"
-          min={0}
-          max={360}
-          value={hue}
-          onChange={(e) => {
-            const h = e.currentTarget.valueAsNumber;
-            setHue(h);
-            onChange(hslToHex(h, 85, 55));
-          }}
-          className="w-full appearance-none h-2 rounded-full outline-none"
-          style={{ background: gradient }}
-          aria-label="Accent hue"
-        />
-        <div className="flex items-center gap-2">
-          <span
-            className="inline-block w-6 h-6 rounded-md border border-white/10"
-            style={{ background: current }}
-            title={current}
-          />
-          <code className="text-xs text-slate-300/75">{current}</code>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-8 gap-2">
-        {SWATCHES.map((c) => {
-          const active = c.toLowerCase() === current.toLowerCase();
-          return (
-            <button
-              key={c}
-              type="button"
-              onClick={() => onChange(c)}
-              title={c}
-              aria-label={`Pick ${c}`}
-              className={`h-6 rounded-md border ${active ? 'border-white' : 'border-white/10'}`}
-              style={{ background: c }}
-            />
-          );
-        })}
-      </div>
-
-      <div className="flex items-center gap-3">
-        <input
-          type="color"
-          value={current}
-          onChange={(e) => onChange(e.currentTarget.value)}
-          className="w-9 h-9 p-0 border-0 bg-transparent"
-          aria-label="Custom color"
-        />
-        <span className="text-xs text-slate-300/70">Custom</span>
-      </div>
-    </div>
-  );
-}
-
 /** ------------------------------- Page ------------------------------- */
 
 export default function Home() {
@@ -230,7 +84,14 @@ export default function Home() {
         return;
       }
 
-      const { handle: savedHandle } = await saveProfile(payload);
+      const result = await saveProfile(payload);
+
+      if (!result?.handle) {
+        throw new Error('Profile was saved but no handle was returned');
+      }
+
+      const savedHandle = result.handle;
+
       setSaving(false);
       const shareUrl = `${location.origin}/u/${savedHandle}`;
       setLink(shareUrl);
@@ -247,8 +108,9 @@ export default function Home() {
         router.push(`/u/${savedHandle}`);
       }, 1600);
     } catch (err: any) {
+      console.error('Save profile failed:', err);
       setSaving(false);
-      alert(err.message || 'Failed to save');
+      alert(err.message || 'Failed to save profile');
     }
   };
 
@@ -264,7 +126,8 @@ export default function Home() {
           Build a <span className="gradient-text">shareable profile card</span>
         </motion.h1>
         <p className="mt-4 text-slate-300/90 max-w-2xl">
-          Enter your info, pick a theme, and instantly get a beautiful profile page to share.
+          Enter your info, pick a theme, and instantly get a beautiful profile
+          page to share.
         </p>
 
         <div className="mt-10 grid lg:grid-cols-2 gap-8 items-start">
@@ -287,7 +150,9 @@ export default function Home() {
 
               {/* Handle */}
               <div className="grid gap-2">
-                <label className="text-sm text-slate-300/90">Handle (unique URL)</label>
+                <label className="text-sm text-slate-300/90">
+                  Handle (unique URL)
+                </label>
                 <input
                   name="handle"
                   value={handle}
@@ -363,10 +228,7 @@ export default function Home() {
                 </div>
                 <div className="grid gap-2">
                   <label className="text-sm text-slate-300/90">Accent</label>
-                  <AccentPicker
-                    value={data.accent}
-                    onChange={(hex) => setData((prev) => ({ ...prev, accent: hex }))}
-                  />
+                  {/* TODO: plug your AccentPicker here */}
                 </div>
               </div>
 
