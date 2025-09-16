@@ -14,6 +14,7 @@ model User {
   name      String
   email     String?  @unique
   avatarB64 String?
+  bio       String?   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   profiles  Profile[]
@@ -23,20 +24,21 @@ model Profile {
   id        String   @id @default(cuid())
   handle    String   @unique
 
-  fullName  String?     // used as data.fullName
-  title     String?     // used as data.title
-  bio       String?     // used as data.bio
-  location  String?     // used as data.location
-  website   String?     // used as data.website
-  avatar    String?     // used as data.avatar
-  theme     String      @default("ocean") // used as data.theme
-  accent    String?     // used as data.accent (if you set it)
+  fullName  String?     
+  title     String?     
+  bio       String?     
+  location  String?     
+  website   String?     
+  avatar    String?     
+  theme     String      @default("ocean") 
+  accent    String?     
   userId    String
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  links     Link[]                // ← back-relation to Link
+  links     Link[]                
+
   @@index([userId]) 
 
- createdAt DateTime @default(now())
+  createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
