@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { ProfileData } from "@/components/ProfileCard"; // reuse your type
 
 export async function GET(
   req: Request,
@@ -14,7 +15,19 @@ export async function GET(
       return NextResponse.json({ error: "Profile not found" }, { status: 404 });
     }
 
-    return NextResponse.json(profile, { status: 200 });
+    // Normalize to ProfileData
+    const data: ProfileData = {
+      fullName: profile.fullName ?? "",
+      bio: profile.bio ?? undefined,
+      location: profile.location ?? undefined,
+      website: profile.website ?? undefined,
+      avatar: profile.avatar ?? undefined,
+      theme: profile.theme ?? "ocean",
+      accent: profile.accent ?? undefined,
+      handle: profile.handle,
+    };
+
+    return NextResponse.json(data, { status: 200 });
   } catch (err: any) {
     console.error("Error fetching profile:", err);
     return NextResponse.json(
