@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { mapProfile } from "@/lib/profileMapper";
+import { ProfileData } from "@/components/ProfileCard";
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    console.log("Incoming body:", body);
-
     const { email, handle, fullName, bio, location, website, avatar, theme, accent } = body;
 
     if (!email || !handle) {
@@ -13,7 +13,7 @@ export async function POST(req: Request) {
     }
 
     const profile = await prisma.profile.upsert({
-      where: { handle }, // handle is unique
+      where: { handle },
       update: {
         fullName,
         bio,
@@ -45,7 +45,8 @@ export async function POST(req: Request) {
       },
     });
 
-    return NextResponse.json({ profile }, { status: 200 });
+    const data: ProfileData = mapProfile(profile);
+    return NextResponse.json(data, { status: 200 });
   } catch (err: any) {
     console.error("Error saving profile:", err);
 
