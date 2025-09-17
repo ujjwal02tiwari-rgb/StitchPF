@@ -1,25 +1,21 @@
-import { notFound } from "next/navigation";
 import ProfileCard, { ProfileData } from "@/components/ProfileCard";
 
-async function getProfile(handle: string): Promise<ProfileData | null> {
+async function getProfile(handle: string): Promise<{ status: number; data: any }> {
   try {
-    const url = `/api/profile/${handle}`;
-    console.log("Fetching profile from:", url); // ✅ log URL
+    const res = await fetch(`/api/profile/${handle}`, {
+      cache: "no-store",
+    });
 
-    const res = await fetch(url, { cache: "no-store" });
+    let json: any = null;
+    try {
+      json = await res.json();
+    } catch {
+      // ignore parse error
+    }
 
-    console.log("Response status:", res.status); // ✅ log status
-
-    if (res.status === 404) return null;
-    if (!res.ok) throw new Error(`Request failed: ${res.status}`);
-
-    const data = await res.json();
-    console.log("Profile data:", data); // ✅ log payload
-
-    return data;
-  } catch (err) {
-    console.error("Error fetching profile:", err);
-    return null;
+    return { status: res.status, data: json };
+  } catch (err: any) {
+    return { status: 500, data: { error: err.message } };
   }
 }
 
@@ -28,12 +24,21 @@ type ProfilePageProps = {
 };
 
 export default async function ProfilePage({ params }: ProfilePageProps) {
-  const data = await getProfile(params.handle);
+  const result = await getProfile(params.handle);
 
-  if (!data) {
-    console.log("No profile found for handle:", params.handle);
-    return notFound();
+  if (result.status !== 200) {
+    return (
+      <main className="min-h-screen flex items-center justify-center p-10 text-white">
+        <div>
+          <h1 className="text-2xl font-bold">Error fetching profile</h1>
+          <p>Status: {result.status}</p>
+          <pre>{JSON.stringify(result.data, null, 2)}</pre>
+        </div>
+      </main>
+    );
   }
+
+  const data: ProfileData = result.data;
 
   return (
     <main className="min-h-screen flex items-center justify-center py-10 px-5">
