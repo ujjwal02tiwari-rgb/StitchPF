@@ -35,14 +35,11 @@ type ProfilePageProps = {
   params: { handle: string };
 };
 
-export default async function ProfilePage({ params }: ProfilePageProps) {
-  const data = await getProfile(params.handle);
-
-  if (!data) return notFound();
-
+export default function TestPage({ params }: { params: { handle: string } }) {
   return (
-    <main className="min-h-screen flex items-center justify-center py-10 px-5">
-      <ProfileCard data={data} />
+    <main className="flex items-center justify-center h-screen">
+      <h1 className="text-4xl font-bold">Handle: {params.handle}</h1>
     </main>
   );
 }
+
