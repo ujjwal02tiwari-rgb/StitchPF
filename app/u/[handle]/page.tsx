@@ -3,15 +3,20 @@ import ProfileCard, { ProfileData } from "@/components/ProfileCard";
 
 async function getProfile(handle: string): Promise<ProfileData | null> {
   try {
-    // Use relative URL so Next.js routes it internally
-    const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL ?? ""}/api/profile/${handle}`, {
-      cache: "no-store",
-    });
+    const url = `/api/profile/${handle}`;
+    console.log("Fetching profile from:", url); // ✅ log URL
+
+    const res = await fetch(url, { cache: "no-store" });
+
+    console.log("Response status:", res.status); // ✅ log status
 
     if (res.status === 404) return null;
     if (!res.ok) throw new Error(`Request failed: ${res.status}`);
 
-    return res.json();
+    const data = await res.json();
+    console.log("Profile data:", data); // ✅ log payload
+
+    return data;
   } catch (err) {
     console.error("Error fetching profile:", err);
     return null;
@@ -25,7 +30,10 @@ type ProfilePageProps = {
 export default async function ProfilePage({ params }: ProfilePageProps) {
   const data = await getProfile(params.handle);
 
-  if (!data) return notFound();
+  if (!data) {
+    console.log("No profile found for handle:", params.handle);
+    return notFound();
+  }
 
   return (
     <main className="min-h-screen flex items-center justify-center py-10 px-5">
