@@ -3,25 +3,26 @@ import ProfileCard, { ProfileData } from "@/components/ProfileCard";
 
 function getBaseUrl() {
   if (process.env.VERCEL_URL) {
-    // On Vercel, e.g. stitch-xxxxx.vercel.app
     return `https://${process.env.VERCEL_URL}`;
   }
-  // Fallback for local dev
   return "http://localhost:3000";
 }
 
 async function getProfile(handle: string): Promise<ProfileData | null> {
   const baseUrl = getBaseUrl();
   const url = `${baseUrl}/api/profile/${handle}`;
-  console.log("Fetching from:", url);
 
   try {
     const res = await fetch(url, { cache: "no-store" });
 
     if (res.status === 404) return null;
-    if (!res.ok) throw new Error(`Request failed: ${res.status}`);
+    if (!res.ok) {
+      console.error("API error:", res.status, res.statusText);
+      return null;
+    }
 
-    return res.json();
+    const data: ProfileData = await res.json(); 
+    return data;
   } catch (err) {
     console.error("Error fetching profile:", err);
     return null;
