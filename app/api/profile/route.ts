@@ -12,9 +12,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Email and handle are required" }, { status: 400 });
     }
 
-    // Upsert Profile linked to a User
+    // Ensure handle is unique in schema.prisma
     const profile = await prisma.profile.upsert({
-      where: { handle },
+      where: { handle }, // handle must be @unique in schema
       update: {
         fullName,
         bio,
@@ -26,6 +26,7 @@ export async function POST(req: Request) {
       },
       create: {
         handle,
+        email,
         fullName,
         bio,
         location,
@@ -46,11 +47,11 @@ export async function POST(req: Request) {
       },
     });
 
-    return NextResponse.json(profile, { status: 200 });
+    // Wrap response to avoid serialization issues
+    return NextResponse.json({ profile }, { status: 200 });
   } catch (err: any) {
     console.error("Error saving profile:", err);
 
-    // Prisma error codes
     if (err.code === "P2002") {
       return NextResponse.json(
         { error: "Handle already exists. Please choose another." },
