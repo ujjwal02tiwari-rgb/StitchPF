@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { ProfileData } from "@/components/ProfileCard"; // reuse your type
+import { ProfileData } from "@/components/ProfileCard";
 
 export async function GET(
   req: Request,
@@ -15,7 +15,7 @@ export async function GET(
       return NextResponse.json({ error: "Profile not found" }, { status: 404 });
     }
 
-    // Normalize to ProfileData
+    // Map to ProfileData shape
     const data: ProfileData = {
       fullName: profile.fullName ?? "",
       bio: profile.bio ?? undefined,
