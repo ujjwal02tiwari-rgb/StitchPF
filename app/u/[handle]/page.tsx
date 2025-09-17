@@ -2,17 +2,13 @@ import { notFound } from "next/navigation";
 import ProfileCard, { ProfileData } from "@/components/ProfileCard";
 
 async function getProfile(handle: string): Promise<ProfileData | null> {
-  // Detect base URL depending on environment
-  const baseUrl =
-    process.env.NEXT_PUBLIC_BASE_URL ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
-
   try {
-    const res = await fetch(`${baseUrl}/api/profile/${handle}`, {
+    // Use relative URL so Next.js routes it internally
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL ?? ""}/api/profile/${handle}`, {
       cache: "no-store",
     });
 
-    if (res.status === 404) return null; // profile not found
+    if (res.status === 404) return null;
     if (!res.ok) throw new Error(`Request failed: ${res.status}`);
 
     return res.json();
