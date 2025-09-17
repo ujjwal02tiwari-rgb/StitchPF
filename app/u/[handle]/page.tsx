@@ -1,26 +1,53 @@
+import { notFound } from "next/navigation";
 import ProfileCard, { ProfileData } from "@/components/ProfileCard";
 
 function getBaseUrl() {
+  if (process.env.NEXT_PUBLIC_BASE_URL) {
+    return process.env.NEXT_PUBLIC_BASE_URL;
+  }
   if (process.env.VERCEL_URL) {
     return `https://${process.env.VERCEL_URL}`;
   }
   return "http://localhost:3000";
 }
 
-async function getProfile(handle: string): Promise<any> {
+async function getProfile(handle: string): Promise<ProfileData | null> {
   const baseUrl = getBaseUrl();
   const url = `${baseUrl}/api/profile/${handle}`;
 
-  const res = await fetch(url, { cache: "no-store" });
-
-  let json: any = null;
   try {
-    json = await res.json();
-  } catch (err) {
-    console.error("Failed to parse JSON:", err);
-  }
+    const res = await fetch(url, {
+      cache: "no-store",
+      headers: {
+        "Content-Type": "application/json", // ✅ ensures correct response
+      },
+    });
 
-  return { status: res.status, json };
+    if (res.status === 404) return null;
+    if (!res.ok) {
+      console.error("API error:", res.status, res.statusText);
+      return null;
+    }
+
+    const json = await res.json();
+
+    // ✅ Map API response to ProfileData
+    const data: ProfileData = {
+      fullName: json.fullName ?? "",
+      bio: json.bio ?? undefined,
+      location: json.location ?? undefined,
+      website: json.website ?? undefined,
+      avatar: json.avatar ?? undefined,
+      theme: json.theme ?? "ocean",
+      accent: json.accent ?? undefined,
+      handle: json.handle,
+    };
+
+    return data;
+  } catch (err) {
+    console.error("Error fetching profile:", err);
+    return null;
+  }
 }
 
 type ProfilePageProps = {
@@ -28,17 +55,13 @@ type ProfilePageProps = {
 };
 
 export default async function ProfilePage({ params }: ProfilePageProps) {
-  const result = await getProfile(params.handle);
+  const data = await getProfile(params.handle);
+
+  if (!data) return notFound();
 
   return (
-    <main className="min-h-screen flex items-center justify-center p-8 text-white">
-      <div className="max-w-2xl">
-        <h1 className="text-2xl font-bold mb-4">Debug Profile Page</h1>
-        <p>Status: {result.status}</p>
-        <pre className="bg-slate-800 p-4 rounded-lg text-sm">
-          {JSON.stringify(result.json, null, 2)}
-        </pre>
-      </div>
+    <main className="min-h-screen flex items-center justify-center py-10 px-5">
+      <ProfileCard data={data} />
     </main>
   );
 }
