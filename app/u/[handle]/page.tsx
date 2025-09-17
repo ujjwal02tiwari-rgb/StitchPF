@@ -1,26 +1,13 @@
 import { notFound } from "next/navigation";
 import ProfileCard, { ProfileData } from "@/components/ProfileCard";
 
-function getBaseUrl() {
-  if (process.env.NEXT_PUBLIC_BASE_URL) {
-    return process.env.NEXT_PUBLIC_BASE_URL;
-  }
-  if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL}`;
-  }
-  return "http://localhost:3000";
-}
-
 async function getProfile(handle: string): Promise<ProfileData | null> {
-  const baseUrl = getBaseUrl();
-  const url = `${baseUrl}/api/profile/${handle}`;
-
   try {
-    const res = await fetch(url, {
+    // ✅ use relative URL with "absolute" option so Next.js resolves correctly
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL ?? ""}/api/profile/${handle}`, {
       cache: "no-store",
-      headers: {
-        "Content-Type": "application/json", // ✅ ensures correct response
-      },
+      // Force internal resolution (works in Vercel prod + dev)
+      next: { revalidate: 0 },
     });
 
     if (res.status === 404) return null;
@@ -29,21 +16,20 @@ async function getProfile(handle: string): Promise<ProfileData | null> {
       return null;
     }
 
-    const json = await res.json();
+    const data = await res.json();
 
-    // ✅ Map API response to ProfileData
-    const data: ProfileData = {
-      fullName: json.fullName ?? "",
-      bio: json.bio ?? undefined,
-      location: json.location ?? undefined,
-      website: json.website ?? undefined,
-      avatar: json.avatar ?? undefined,
-      theme: json.theme ?? "ocean",
-      accent: json.accent ?? undefined,
-      handle: json.handle,
+    const profile: ProfileData = {
+      fullName: data.fullName ?? "",
+      bio: data.bio ?? undefined,
+      location: data.location ?? undefined,
+      website: data.website ?? undefined,
+      avatar: data.avatar ?? undefined,
+      theme: data.theme ?? "ocean",
+      accent: data.accent ?? undefined,
+      handle: data.handle,
     };
 
-    return data;
+    return profile;
   } catch (err) {
     console.error("Error fetching profile:", err);
     return null;
