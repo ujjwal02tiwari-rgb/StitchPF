@@ -16,20 +16,11 @@ async function getProfile(handle: string): Promise<ProfileData | null> {
     const res = await fetch(url, { cache: "no-store" });
 
     if (res.status === 404) return null;
-    if (!res.ok) {
-      console.error("API error:", res.status, res.statusText);
-      return null;
-    }
+    if (!res.ok) return null;
 
-    const json = await res.json();
-
-    // Defensive check: ensure handle exists
-    if (!json?.handle) {
-      console.error("Invalid API response:", json);
-      return null;
-    }
-
-    return json as ProfileData;
+    // ✅ trust API response
+    const data = await res.json();
+    return data as ProfileData;
   } catch (err) {
     console.error("Error fetching profile:", err);
     return null;
@@ -44,13 +35,10 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   const data = await getProfile(params.handle);
 
   if (!data) {
-    // Instead of black 404, show a friendly message
     return (
       <main className="min-h-screen flex items-center justify-center text-white">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-2">Profile not found</h1>
-          <p>Handle: {params.handle}</p>
-        </div>
+        <h1 className="text-2xl font-bold">Profile not found</h1>
+        <p>Handle: {params.handle}</p>
       </main>
     );
   }
