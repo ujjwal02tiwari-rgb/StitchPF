@@ -1,21 +1,30 @@
+import { notFound } from "next/navigation";
 import ProfileCard, { ProfileData } from "@/components/ProfileCard";
 
-async function getProfile(handle: string): Promise<{ status: number; data: any }> {
+function getBaseUrl() {
+  if (process.env.VERCEL_URL) {
+    // On Vercel, e.g. stitch-xxxxx.vercel.app
+    return `https://${process.env.VERCEL_URL}`;
+  }
+  // Fallback for local dev
+  return "http://localhost:3000";
+}
+
+async function getProfile(handle: string): Promise<ProfileData | null> {
+  const baseUrl = getBaseUrl();
+  const url = `${baseUrl}/api/profile/${handle}`;
+  console.log("Fetching from:", url);
+
   try {
-    const res = await fetch(`/api/profile/${handle}`, {
-      cache: "no-store",
-    });
+    const res = await fetch(url, { cache: "no-store" });
 
-    let json: any = null;
-    try {
-      json = await res.json();
-    } catch {
-      // ignore parse error
-    }
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`Request failed: ${res.status}`);
 
-    return { status: res.status, data: json };
-  } catch (err: any) {
-    return { status: 500, data: { error: err.message } };
+    return res.json();
+  } catch (err) {
+    console.error("Error fetching profile:", err);
+    return null;
   }
 }
 
@@ -24,21 +33,9 @@ type ProfilePageProps = {
 };
 
 export default async function ProfilePage({ params }: ProfilePageProps) {
-  const result = await getProfile(params.handle);
+  const data = await getProfile(params.handle);
 
-  if (result.status !== 200) {
-    return (
-      <main className="min-h-screen flex items-center justify-center p-10 text-white">
-        <div>
-          <h1 className="text-2xl font-bold">Error fetching profile</h1>
-          <p>Status: {result.status}</p>
-          <pre>{JSON.stringify(result.data, null, 2)}</pre>
-        </div>
-      </main>
-    );
-  }
-
-  const data: ProfileData = result.data;
+  if (!data) return notFound();
 
   return (
     <main className="min-h-screen flex items-center justify-center py-10 px-5">
