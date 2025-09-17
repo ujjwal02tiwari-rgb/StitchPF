@@ -2,7 +2,10 @@ import { notFound } from "next/navigation";
 import ProfileCard, { ProfileData } from "@/components/ProfileCard";
 
 async function getProfile(handle: string): Promise<ProfileData | null> {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+  const baseUrl =
+    process.env.NEXT_PUBLIC_BASE_URL ||
+    (typeof window === "undefined" ? process.env.VERCEL_URL && `https://${process.env.VERCEL_URL}` : window.location.origin) ||
+    "http://localhost:3000";
 
   try {
     const res = await fetch(`${baseUrl}/api/profile/${handle}`, {
@@ -35,11 +38,14 @@ type ProfilePageProps = {
   params: { handle: string };
 };
 
-export default function TestPage({ params }: { params: { handle: string } }) {
+export default async function ProfilePage({ params }: ProfilePageProps) {
+  const data = await getProfile(params.handle);
+
+  if (!data) return notFound();
+
   return (
-    <main className="flex items-center justify-center h-screen">
-      <h1 className="text-4xl font-bold">Handle: {params.handle}</h1>
+    <main className="min-h-screen flex items-center justify-center py-10 px-5">
+      <ProfileCard data={data} />
     </main>
   );
 }
-
